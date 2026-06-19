@@ -1,0 +1,77 @@
+=== DQN FLIGHT SIM — COMMANDS & ARCHITECTURE ===
+
+--- Run ---
+  godot --path /path/to/project
+
+--- Auto-Save ---
+  Weights, epsilon, and training stats auto-save every 50 episodes
+  to user://dqn_weights.save (Godot's user data folder).
+
+--- Auto-Load ---
+  If dqn_weights.save exists at startup, it is loaded automatically
+  and training resumes from where it left off.
+
+--- Save Location ---
+  Linux:   ~/.local/share/godot/app_userdata/<project>/dqn_weights.save
+  Windows: %APPDATA%/Godot/app_userdata/<project>/dqn_weights.save
+  macOS:   ~/Library/Application Support/Godot/app_userdata/<project>/dqn_weights.save
+
+--- Training (console output) ---
+  Episode N | reward: X.X | steps: M | eps: E.EEE | best: B.B
+    N    = episode number
+    X.X  = total reward this episode (target: high positive)
+    M    = steps in this episode (target: near 2000)
+    E.EEE = epsilon (exploration rate, decays from 1.0 to 0.01)
+    B.B  = best reward seen so far
+
+--- Episode End Conditions ---
+  • Safe landing (parked):     +15 bonus, episode ends successfully
+  • Crash:                     0 reward, episode ends
+  • Max steps (2000):          episode times out, reward as-is
+
+--- Takeoff (first launch only) ---
+  Plane spawns on runway at (0, 2, -250), engine starts, accelerates
+  to 30+ m/s, pitches up. DQN takes over above 50 m altitude.
+  Subsequent respawns skip takeoff and spawn at altitude.
+
+--- State (12 dimensions) ---
+  [forward_speed/100, altitude/500, sin(pitch), cos(pitch),
+   sin(roll), cos(roll), vertical_speed/50, is_stalled,
+   obstacle_fwd, obstacle_left15, obstacle_right15, fuel_SoC]
+
+--- Actions (7) ---
+  0 = nothing
+  1 = pitch up
+  2 = pitch down
+  3 = roll left
+  4 = roll right
+  5 = throttle up
+  6 = throttle down
+
+--- Network (Dueling DQN) ---
+  Input(12) -> Hidden(128, ReLU) -> split into:
+    - Value stream:   Hidden(128) -> V (scalar)
+    - Advantage stream: Hidden(128) -> A (7 values)
+  Q(s,a) = V(s) + A(s,a) - mean_a A(s,a)
+
+--- Training Details ---
+  • Double DQN:      online network selects best next action,
+                     target network evaluates it (reduces overestimation)
+  • Soft target:     Polyak averaging (tau=0.005) every step
+                     instead of hard copy every N steps
+  • Prioritized replay: SumTree with alpha=0.6, beta anneals 0.4->1.0
+  • Gradient clip:   all gradients clipped to [-1.0, 1.0]
+  • LR decay:        0.001 * 0.9995^step, floor 0.0001
+  • Gamma=0.99, Batch=32, Replay=20k, Epsilon decay=0.998
+
+--- Change Log ---
+  • Hidden layer 32 -> 128
+  • Dueling DQN: value + advantage streams instead of single output
+  • Double DQN: target uses online-selected actions
+  • Soft target update (Polyak tau=0.005) replaces hard periodic copy
+  • Prioritized experience replay with SumTree
+  • Gradient clipping at 1.0
+  • Learning rate decay (0.9995 per step, floor 0.0001)
+  • Fixed step_count double-increment bug
+  • GPU acceleration removed (no improvement to model)
+  • Save format v3 (incompatible with old saves)
