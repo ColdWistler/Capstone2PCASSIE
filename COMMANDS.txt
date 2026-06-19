@@ -1,7 +1,10 @@
 === DQN FLIGHT SIM — COMMANDS & ARCHITECTURE ===
 
 --- Run ---
-  godot --path /path/to/project
+  Normal:    godot --path /home/soggy/Documents/GitHub/Capstone2PCASSIE
+  Headless:  godot --headless --path /home/soggy/Documents/GitHub/Capstone2PCASSIE
+             (no rendering, 5x time scale, FPS uncapped — much faster training)
+             Physics still runs; obstacle detection, raycasts all work.
 
 --- Auto-Save ---
   Weights, epsilon, and training stats auto-save every 50 episodes
@@ -49,9 +52,9 @@
   6 = throttle down
 
 --- Network (Dueling DQN) ---
-  Input(12) -> Hidden(128, ReLU) -> split into:
-    - Value stream:   Hidden(128) -> V (scalar)
-    - Advantage stream: Hidden(128) -> A (7 values)
+  Input(12) -> Hidden(256, ReLU) -> split into:
+    - Value stream:   Hidden(256) -> V (scalar)
+    - Advantage stream: Hidden(256) -> A (7 values)
   Q(s,a) = V(s) + A(s,a) - mean_a A(s,a)
 
 --- Training Details ---
@@ -62,16 +65,16 @@
   • Prioritized replay: SumTree with alpha=0.6, beta anneals 0.4->1.0
   • Gradient clip:   all gradients clipped to [-1.0, 1.0]
   • LR decay:        0.001 * 0.9995^step, floor 0.0001
-  • Gamma=0.99, Batch=32, Replay=20k, Epsilon decay=0.998
-
---- Change Log ---
-  • Hidden layer 32 -> 128
-  • Dueling DQN: value + advantage streams instead of single output
-  • Double DQN: target uses online-selected actions
-  • Soft target update (Polyak tau=0.005) replaces hard periodic copy
-  • Prioritized experience replay with SumTree
-  • Gradient clipping at 1.0
-  • Learning rate decay (0.9995 per step, floor 0.0001)
-  • Fixed step_count double-increment bug
-  • GPU acceleration removed (no improvement to model)
-  • Save format v3 (incompatible with old saves)
+  • Gamma=0.99, Batch=32, Replay=50k, FrameSkip=4, N-step=3,
+    TrainInterval=2, ChunkSize=16 (batch split across 2 frames)
+  • Optimizer: Adam (beta1=0.9, beta2=0.999, eps=1e-8, bias corrected)
+    replaces plain SGD — faster convergence, adaptive per-param LR
+  • N-step (3) returns: accumulates rewards over 3 steps before bootstrapping,
+    reducing bias and speeding reward propagation
+  • Action change penalty: -0.02 when switching actions (reduces jitter)
+  • Reward reshaping: altitude uses smooth Gaussian (sigma=80, peak=3.0)
+    centered at 200m instead of hard ±50m band; vertical speed dampener
+    (-0.05 * |v/s|) near target; hard floor penalty below 50m to prevent
+    altitude loss; speed reward capped at 0.3 to reduce competing signal
+  • Hidden: 128 -> 256, Batch: 32 -> 64, Replay: 20k -> 50k
+  • Save format v4 (incompatible with old saves)

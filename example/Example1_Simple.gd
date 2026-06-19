@@ -2,15 +2,20 @@ extends Node3D
 
 const STATE_DIM = 12
 const ACTION_DIM = 7
-const HIDDEN = 128
+const HIDDEN = 256
 const MAX_EPISODE_STEPS = 2000
 const FRAMES_PER_STEP = 4
-const BATCH_SIZE = 32
-const REPLAY_CAPACITY = 20000
+const BATCH_SIZE = 64
+const REPLAY_CAPACITY = 50000
+const N_STEPS = 3
 const GAMMA = 0.99
+var GAMMA_POW = [1.0, GAMMA, GAMMA * GAMMA, GAMMA * GAMMA * GAMMA]
 const LR_INIT = 0.001
 const LR_DECAY = 0.9995
 const LR_MIN = 0.0001
+const ADAM_BETA1 = 0.9
+const ADAM_BETA2 = 0.999
+const ADAM_EPS = 1e-8
 const TAU = 0.005
 const EPSILON_START = 1.0
 const EPSILON_MIN = 0.01
@@ -20,8 +25,11 @@ const PRIORITY_ALPHA = 0.6
 const PRIORITY_BETA_START = 0.4
 const PRIORITY_BETA_STEPS = 100000
 const SAVE_PATH = "user://dqn_weights.save"
+const META_PATH = "user://dqn_meta.save"
+const TRAIN_INTERVAL = 2
+const CHUNK_SIZE = 16
 const SAVE_INTERVAL = 50
-const SAVE_VERSION = 3
+const SAVE_VERSION = 4
 
 var template_explosion = preload("res://example/scenes/Explosion/Explosion.tscn")
 var explosion_instance = null
@@ -70,6 +78,41 @@ var bVt = 0.0
 
 var epsilon = EPSILON_START
 
+# Adam optimizer state
+var m_w1 = PackedFloat32Array()
+var v_w1 = PackedFloat32Array()
+var m_b1 = PackedFloat32Array()
+var v_b1 = PackedFloat32Array()
+var m_wA = PackedFloat32Array()
+var v_wA = PackedFloat32Array()
+var m_bA = PackedFloat32Array()
+var v_bA = PackedFloat32Array()
+var m_wV = PackedFloat32Array()
+var v_wV = PackedFloat32Array()
+var m_bV = 0.0
+var v_bV = 0.0
+var adam_step = 0
+
+# N-step return buffer
+var nstep_buffer = []
+var prev_action = -1
+var train_counter = 0
+
+# Multi-run tracking
+var run_id = 0
+var _last_saved_best = -1e9
+
+# Chunked training state
+var chunk_batch = []
+var chunk_indices = []
+var chunk_is_weights = PackedFloat32Array()
+var chunk_ptr = -1
+var chunk_dw1 = PackedFloat32Array()
+var chunk_db1 = PackedFloat32Array()
+var chunk_dwA = PackedFloat32Array()
+var chunk_dbA = PackedFloat32Array()
+var chunk_dwV = PackedFloat32Array()
+var chunk_dbV = 0.0
 
 class SumTree:
 	var tree: PackedFloat32Array
@@ -151,13 +194,26 @@ func _ready():
 	landing_gear_module = aircraft.find_modules_by_type("landing_gear").pop_front()
 	energy_container = aircraft.find_modules_by_type("energy_container").pop_front()
 
+	if OS.has_feature("headless"):
+		Engine.max_fps = -1
+		Engine.time_scale = 5.0
+		print("Headless mode — FPS uncapped, time scale 5x")
+
 	_init_network()
 	sumtree = SumTree.new(REPLAY_CAPACITY)
-	var loaded = load_weights()
-	if loaded:
-		print("Loaded saved weights (episode %d)" % episode_count)
-	else:
-		print("No saved weights found, starting fresh")
+	_init_run_id()
+	var best_path = _find_best_run()
+	var loaded = false
+	if best_path != "":
+		loaded = load_weights(best_path)
+		if loaded:
+			print("Loaded best model (best_reward %.1f)" % best_reward)
+	if not loaded:
+		loaded = load_weights()
+		if loaded:
+			print("Loaded saved weights (episode %d)" % episode_count)
+		else:
+			print("No saved weights found, starting fresh")
 	initialize_aircraft()
 	if takeoff_phase:
 		print("Starting takeoff from runway...")
@@ -185,7 +241,24 @@ func _init_network():
 		bA[i] = 0.0
 	for i in range(wV.size()):
 		wV[i] = rng.randfn(0.0, 0.1)
+	_init_adam()
 	_copy_to_target()
+
+
+func _init_adam():
+	m_w1.resize(HIDDEN * STATE_DIM)
+	v_w1.resize(HIDDEN * STATE_DIM)
+	m_b1.resize(HIDDEN)
+	v_b1.resize(HIDDEN)
+	m_wA.resize(ACTION_DIM * HIDDEN)
+	v_wA.resize(ACTION_DIM * HIDDEN)
+	m_bA.resize(ACTION_DIM)
+	v_bA.resize(ACTION_DIM)
+	m_wV.resize(HIDDEN)
+	v_wV.resize(HIDDEN)
+	m_bV = 0.0
+	v_bV = 0.0
+	adam_step = 0
 
 
 func _copy_to_target():
@@ -198,7 +271,15 @@ func _copy_to_target():
 
 
 func save_weights():
-	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	_write_weights_to(SAVE_PATH)
+	if best_reward > _last_saved_best:
+		_write_weights_to("user://dqn_run_%d.save" % run_id)
+		_last_saved_best = best_reward
+	print("Weights saved (episode %d)" % episode_count)
+
+
+func _write_weights_to(path: String):
+	var file = FileAccess.open(path, FileAccess.WRITE)
 	if not file:
 		push_error("Failed to open save file for writing")
 		return
@@ -213,18 +294,30 @@ func save_weights():
 	file.store_32(episode_count)
 	file.store_32(step_count)
 	file.store_var(best_reward)
+	file.store_var(m_w1)
+	file.store_var(v_w1)
+	file.store_var(m_b1)
+	file.store_var(v_b1)
+	file.store_var(m_wA)
+	file.store_var(v_wA)
+	file.store_var(m_bA)
+	file.store_var(v_bA)
+	file.store_var(m_wV)
+	file.store_var(v_wV)
+	file.store_var(m_bV)
+	file.store_var(v_bV)
+	file.store_32(adam_step)
 	file.close()
-	print("Weights saved (episode %d)" % episode_count)
 
 
-func load_weights() -> bool:
-	if not FileAccess.file_exists(SAVE_PATH):
+func load_weights(path := SAVE_PATH) -> bool:
+	if not FileAccess.file_exists(path):
 		return false
-	var file = FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var file = FileAccess.open(path, FileAccess.READ)
 	if not file:
 		return false
 	var ver = file.get_32()
-	if ver < 3:
+	if ver < 4:
 		file.close()
 		return false
 	w1 = file.get_var()
@@ -237,10 +330,74 @@ func load_weights() -> bool:
 	episode_count = file.get_32()
 	step_count = file.get_32()
 	best_reward = file.get_var()
+	m_w1 = file.get_var()
+	v_w1 = file.get_var()
+	m_b1 = file.get_var()
+	v_b1 = file.get_var()
+	m_wA = file.get_var()
+	v_wA = file.get_var()
+	m_bA = file.get_var()
+	v_bA = file.get_var()
+	m_wV = file.get_var()
+	v_wV = file.get_var()
+	m_bV = file.get_var()
+	v_bV = file.get_var()
+	adam_step = file.get_32()
 	file.close()
 	_copy_to_target()
-	print("Weights loaded from save (episode %d, best_reward %.1f)" % [episode_count, best_reward])
+	print("Weights loaded (episode %d, step %d, best_reward %.1f)" % [episode_count, step_count, best_reward])
+	_last_saved_best = best_reward
 	return true
+
+
+func _init_run_id():
+	var rid = 0
+	if FileAccess.file_exists(META_PATH):
+		var f = FileAccess.open(META_PATH, FileAccess.READ)
+		if f:
+			rid = f.get_32()
+			f.close()
+	var f = FileAccess.open(META_PATH, FileAccess.WRITE)
+	if f:
+		f.store_32(rid + 1)
+		f.close()
+	run_id = rid
+
+
+func _find_best_run() -> String:
+	var best_path = ""
+	var best_r = -1e9
+	var dir = DirAccess.open("user://")
+	if not dir:
+		return best_path
+	dir.list_dir_begin()
+	var fn = dir.get_next()
+	while fn != "":
+		if fn.begins_with("dqn_run_") and fn.ends_with(".save"):
+			var full = "user://" + fn
+			var file = FileAccess.open(full, FileAccess.READ)
+			if file:
+				var ver = file.get_32()
+				if ver >= 4:
+					file.get_var()
+					file.get_var()
+					file.get_var()
+					file.get_var()
+					file.get_var()
+					file.get_var()
+					file.get_var()
+					file.get_32()
+					file.get_32()
+					var r = file.get_var()
+					if r > best_r:
+						best_r = r
+						best_path = full
+				file.close()
+		fn = dir.get_next()
+	dir.list_dir_end()
+	if best_path != "":
+		print("Found best run model (reward %.1f)" % best_r)
+	return best_path
 
 
 func initialize_aircraft():
@@ -282,6 +439,10 @@ func reset_episode():
 	episode_count += 1
 	if episode_count % SAVE_INTERVAL == 0:
 		save_weights()
+	prev_action = -1
+	train_counter = 0
+	chunk_ptr = -1
+	nstep_buffer.clear()
 	initialize_aircraft()
 	prev_state = get_state()
 
@@ -352,7 +513,8 @@ func _zero_state() -> Array:
 
 
 const TARGET_ALT = 200.0
-const ALT_BAND = 50.0
+const ALT_SIGMA = 80.0
+const ALT_FLOOR = 50.0
 
 func get_fuel_soc() -> float:
 	if is_instance_valid(energy_container):
@@ -365,6 +527,7 @@ func compute_reward() -> float:
 		return -1.0
 	var alt = max(aircraft.local_altitude, 0.0)
 	var spd = aircraft.forward_air_speed
+	var vs = aircraft.linear_velocity.y
 	var fuel = get_fuel_soc()
 	var engine_on = engine_module.is_engine_working if is_instance_valid(engine_module) else true
 	var gear_down = landing_gear_module.is_deployed if is_instance_valid(landing_gear_module) else false
@@ -379,16 +542,17 @@ func compute_reward() -> float:
 		if spd < 3.0 and not is_done:
 			rw += 2.0
 	else:
-		rw += spd * 0.005
+		rw += min(spd * 0.002, 0.3)
 		if fuel > 0.1 and engine_on:
 			var alt_dev = abs(alt - TARGET_ALT)
-			if alt_dev < ALT_BAND:
-				rw += 1.0
-			else:
-				rw += max(0.0, 1.0 - alt_dev / TARGET_ALT) * 0.5
+			rw += exp(-(alt_dev * alt_dev) / (2.0 * ALT_SIGMA * ALT_SIGMA)) * 3.0
+			if alt_dev < ALT_SIGMA * 2:
+				rw -= abs(vs) * 0.05
+			if alt < ALT_FLOOR:
+				rw -= (ALT_FLOOR - alt) / ALT_FLOOR * 2.0
 		else:
 			rw += 0.5 if gear_down else -0.5
-			rw += 0.3 if aircraft.linear_velocity.y < -1.0 else 0.0
+			rw += 0.3 if vs < -1.0 else 0.0
 			if alt < 50.0 and spd < 20.0:
 				rw += 2.0
 			if not engine_on and gear_down:
@@ -397,7 +561,7 @@ func compute_reward() -> float:
 	if alt > 50.0 and spd > 30.0 and not aircraft.is_stalled and engine_on:
 		rw += 0.2
 	if aircraft.is_stalled:
-		rw -= 0.5
+		rw -= 1.0
 	if aircraft.local_g_force > 5.0:
 		rw -= 0.5
 	return rw
@@ -471,8 +635,30 @@ func select_action(state: Array) -> int:
 
 
 func push_replay(state: Array, action: int, reward: float, next_state: Array, done: bool):
+	nstep_buffer.append([state, action, reward, next_state, done])
+	if nstep_buffer.size() > N_STEPS:
+		nstep_buffer.pop_front()
+
+	var push_ready = done or nstep_buffer.size() == N_STEPS
+	if not push_ready:
+		return
+
+	var G = 0.0
+	var final_idx = nstep_buffer.size() - 1
+	for i in range(nstep_buffer.size()):
+		G += pow(GAMMA, i) * nstep_buffer[i][2]
+		if nstep_buffer[i][4]:
+			final_idx = i
+			break
+
+	var first = nstep_buffer[0]
+	var last = nstep_buffer[final_idx]
+	var n_actual = final_idx + 1
 	var p = pow(max_priority, PRIORITY_ALPHA)
-	sumtree.add([state, action, reward, next_state, done], p)
+	sumtree.add([first[0], first[1], G, last[3], last[4], n_actual], p)
+
+	if done:
+		nstep_buffer.clear()
 
 
 func sample_batch(batch_size: int) -> Array:
@@ -500,30 +686,36 @@ func train_step():
 	if sumtree.size < BATCH_SIZE:
 		return
 
-	var batch_result = sample_batch(BATCH_SIZE)
-	var batch = batch_result[0]
-	var indices = batch_result[1]
-	var is_weights = batch_result[2]
+	if chunk_ptr < 0:
+		var batch_result = sample_batch(BATCH_SIZE)
+		chunk_batch = batch_result[0]
+		chunk_indices = batch_result[1]
+		chunk_is_weights = batch_result[2]
 
-	var dw1 = PackedFloat32Array()
-	var db1 = PackedFloat32Array()
-	var dwA = PackedFloat32Array()
-	var dbA = PackedFloat32Array()
-	var dwV = PackedFloat32Array()
-	var dbV = 0.0
-	dw1.resize(HIDDEN * STATE_DIM)
-	db1.resize(HIDDEN)
-	dwA.resize(ACTION_DIM * HIDDEN)
-	dbA.resize(ACTION_DIM)
-	dwV.resize(HIDDEN)
+		chunk_dw1.resize(HIDDEN * STATE_DIM)
+		chunk_db1.resize(HIDDEN)
+		chunk_dwA.resize(ACTION_DIM * HIDDEN)
+		chunk_dbA.resize(ACTION_DIM)
+		chunk_dwV.resize(HIDDEN)
+		chunk_dw1.fill(0.0)
+		chunk_db1.fill(0.0)
+		chunk_dwA.fill(0.0)
+		chunk_dbA.fill(0.0)
+		chunk_dwV.fill(0.0)
+		chunk_dbV = 0.0
 
-	for i in range(BATCH_SIZE):
-		var b = batch[i]
+		chunk_ptr = 0
+
+	var chunk_end = mini(chunk_ptr + CHUNK_SIZE, BATCH_SIZE)
+
+	for i in range(chunk_ptr, chunk_end):
+		var b = chunk_batch[i]
 		var s: Array = b[0]
 		var a: int = b[1]
 		var r: float = b[2]
 		var ns: Array = b[3]
 		var d: bool = b[4]
+		var n_actual: int = b[5] if b.size() > 5 else 1
 
 		var x_s = PackedFloat32Array(s)
 		var x_ns = PackedFloat32Array(ns)
@@ -534,7 +726,6 @@ func train_step():
 		var A_s = fwd[2]
 		var Q_s = fwd[3]
 
-		# Double DQN: online selects action, target evaluates
 		var fwd_on = forward(x_ns, w1, b1, wA, bA, wV, bV)
 		var Q_on = fwd_on[3]
 		var best_a = 0
@@ -544,17 +735,16 @@ func train_step():
 
 		var fwd_tg = forward(x_ns, w1t, b1t, wAt, bAt, wVt, bVt)
 		var Q_tg = fwd_tg[3]
-		var target = r + GAMMA * Q_tg[best_a] * (0.0 if d else 1.0)
+		var target = r + GAMMA_POW[n_actual] * Q_tg[best_a] * (0.0 if d else 1.0)
 
-		# Update priority with TD error
 		var td_err = abs(Q_s[a] - target) + 1e-6
 		var p = pow(td_err, PRIORITY_ALPHA)
-		sumtree.set_priority(indices[i], p)
+		sumtree.set_priority(chunk_indices[i], p)
 		if td_err > max_priority:
 			max_priority = td_err
 
 		var dQ = 2.0 * (Q_s[a] - target) / float(BATCH_SIZE)
-		dQ *= is_weights[i]
+		dQ *= chunk_is_weights[i]
 
 		var dV = dQ
 		var dA = PackedFloat32Array()
@@ -565,14 +755,14 @@ func train_step():
 		dA[a] += dQ
 
 		for hi in range(HIDDEN):
-			dwV[hi] += dV * h[hi]
-		dbV += dV
+			chunk_dwV[hi] += dV * h[hi]
+		chunk_dbV += dV
 
 		for ai in range(ACTION_DIM):
 			var dai = dA[ai]
 			for hi in range(HIDDEN):
-				dwA[ai * HIDDEN + hi] += dai * h[hi]
-			dbA[ai] += dai
+				chunk_dwA[ai * HIDDEN + hi] += dai * h[hi]
+			chunk_dbA[ai] += dai
 
 		var grad_h = PackedFloat32Array()
 		grad_h.resize(HIDDEN)
@@ -585,51 +775,68 @@ func train_step():
 		for hi in range(HIDDEN):
 			var ghi = grad_h[hi]
 			for j in range(STATE_DIM):
-				dw1[hi * STATE_DIM + j] += ghi * s[j]
-			db1[hi] += ghi
+				chunk_dw1[hi * STATE_DIM + j] += ghi * s[j]
+			chunk_db1[hi] += ghi
 
-	if GRAD_CLIP > 0:
-		for i in range(dw1.size()):
-			dw1[i] = clamp(dw1[i], -GRAD_CLIP, GRAD_CLIP)
-		for i in range(db1.size()):
-			db1[i] = clamp(db1[i], -GRAD_CLIP, GRAD_CLIP)
-		for i in range(dwA.size()):
-			dwA[i] = clamp(dwA[i], -GRAD_CLIP, GRAD_CLIP)
-		for i in range(dbA.size()):
-			dbA[i] = clamp(dbA[i], -GRAD_CLIP, GRAD_CLIP)
-		for i in range(dwV.size()):
-			dwV[i] = clamp(dwV[i], -GRAD_CLIP, GRAD_CLIP)
-		dbV = clamp(dbV, -GRAD_CLIP, GRAD_CLIP)
+	chunk_ptr = chunk_end
 
-	step_count += 1
-	var current_lr = max(LR_MIN, LR_INIT * pow(LR_DECAY, step_count))
+	if chunk_ptr >= BATCH_SIZE:
+		if GRAD_CLIP > 0:
+			for i in range(chunk_dw1.size()):
+				chunk_dw1[i] = clamp(chunk_dw1[i], -GRAD_CLIP, GRAD_CLIP)
+			for i in range(chunk_db1.size()):
+				chunk_db1[i] = clamp(chunk_db1[i], -GRAD_CLIP, GRAD_CLIP)
+			for i in range(chunk_dwA.size()):
+				chunk_dwA[i] = clamp(chunk_dwA[i], -GRAD_CLIP, GRAD_CLIP)
+			for i in range(chunk_dbA.size()):
+				chunk_dbA[i] = clamp(chunk_dbA[i], -GRAD_CLIP, GRAD_CLIP)
+			for i in range(chunk_dwV.size()):
+				chunk_dwV[i] = clamp(chunk_dwV[i], -GRAD_CLIP, GRAD_CLIP)
+			chunk_dbV = clamp(chunk_dbV, -GRAD_CLIP, GRAD_CLIP)
 
-	for i in range(w1.size()):
-		w1[i] -= current_lr * dw1[i]
-	for i in range(b1.size()):
-		b1[i] -= current_lr * db1[i]
-	for i in range(wA.size()):
-		wA[i] -= current_lr * dwA[i]
-	for i in range(bA.size()):
-		bA[i] -= current_lr * dbA[i]
-	for i in range(wV.size()):
-		wV[i] -= current_lr * dwV[i]
-	bV -= current_lr * dbV
+		step_count += 1
+		adam_step += 1
+		var current_lr = max(LR_MIN, LR_INIT * pow(LR_DECAY, step_count))
+		var b1_corr = 1.0 - pow(ADAM_BETA1, adam_step)
+		var b2_corr = 1.0 - pow(ADAM_BETA2, adam_step)
 
-	var tau = TAU
-	for i in range(w1.size()):
-		w1t[i] = tau * w1[i] + (1.0 - tau) * w1t[i]
-	for i in range(b1.size()):
-		b1t[i] = tau * b1[i] + (1.0 - tau) * b1t[i]
-	for i in range(wA.size()):
-		wAt[i] = tau * wA[i] + (1.0 - tau) * wAt[i]
-	for i in range(bA.size()):
-		bAt[i] = tau * bA[i] + (1.0 - tau) * bAt[i]
-	for i in range(wV.size()):
-		wVt[i] = tau * wV[i] + (1.0 - tau) * wVt[i]
-	bVt = tau * bV + (1.0 - tau) * bVt
+		_apply_adam(chunk_dw1, w1, m_w1, v_w1, current_lr, b1_corr, b2_corr)
+		_apply_adam(chunk_db1, b1, m_b1, v_b1, current_lr, b1_corr, b2_corr)
+		_apply_adam(chunk_dwA, wA, m_wA, v_wA, current_lr, b1_corr, b2_corr)
+		_apply_adam(chunk_dbA, bA, m_bA, v_bA, current_lr, b1_corr, b2_corr)
+		_apply_adam(chunk_dwV, wV, m_wV, v_wV, current_lr, b1_corr, b2_corr)
+		m_bV = ADAM_BETA1 * m_bV + (1.0 - ADAM_BETA1) * chunk_dbV
+		v_bV = ADAM_BETA2 * v_bV + (1.0 - ADAM_BETA2) * chunk_dbV * chunk_dbV
+		var mbV_hat = m_bV / b1_corr
+		var vbV_hat = v_bV / b2_corr
+		bV -= current_lr * mbV_hat / (sqrt(vbV_hat) + ADAM_EPS)
 
-	epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
+		var tau = TAU
+		_polyak(w1, w1t, tau)
+		_polyak(b1, b1t, tau)
+		_polyak(wA, wAt, tau)
+		_polyak(bA, bAt, tau)
+		_polyak(wV, wVt, tau)
+		bVt = tau * bV + (1.0 - tau) * bVt
+
+		epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
+
+		chunk_ptr = -1
+
+
+func _apply_adam(dw: PackedFloat32Array, w: PackedFloat32Array, m: PackedFloat32Array, v: PackedFloat32Array, lr: float, b1c: float, b2c: float):
+	for i in range(w.size()):
+		var g = dw[i]
+		m[i] = ADAM_BETA1 * m[i] + (1.0 - ADAM_BETA1) * g
+		v[i] = ADAM_BETA2 * v[i] + (1.0 - ADAM_BETA2) * g * g
+		var m_hat = m[i] / b1c
+		var v_hat = v[i] / b2c
+		w[i] -= lr * m_hat / (sqrt(v_hat) + ADAM_EPS)
+
+
+func _polyak(src: PackedFloat32Array, dst: PackedFloat32Array, tau: float):
+	for i in range(src.size()):
+		dst[i] = tau * src[i] + (1.0 - tau) * dst[i]
 
 
 func do_takeoff_step():
@@ -695,12 +902,18 @@ func _physics_process(_delta):
 
 	var next_state = get_state()
 	var reward = compute_reward()
+	if prev_action >= 0 and action != prev_action:
+		reward -= 0.02
+	prev_action = action
 	episode_step += 1
 	episode_reward += reward
 	var done = is_done or episode_step >= MAX_EPISODE_STEPS
 
 	push_replay(state, action, reward, next_state, done)
-	train_step()
+	train_counter += 1
+	if train_counter >= TRAIN_INTERVAL:
+		train_counter = 0
+		train_step()
 
 	if done:
 		if episode_reward > best_reward:
