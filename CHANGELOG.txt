@@ -1,6 +1,21 @@
 === DQN OPTIMIZATION CHANGELOG ===
 
 ======================================================================
+FEATURE: Headless training mode
+======================================================================
+Problem: Training is slow due to rendering overhead and fixed 1x speed.
+
+Fix applied:
+  - Auto-detects --headless flag via OS.has_feature("headless").
+  - When headless: uncaps FPS (Engine.max_fps = -1) and sets time scale
+    to 5x (Engine.time_scale = 5.0).
+  - Physics, raycasts, and all game logic still run normally. Only
+    rendering is disabled.
+  - Run command: godot --headless --path /path/to/project
+  - At 5x speed, a 2000-step episode completes in ~6.7s instead of ~33s.
+  - Console output still prints episode results at the faster rate.
+
+======================================================================
 FEATURE: Multi-run save & best model auto-select
 ======================================================================
 Problem: Each training session overwrote the same save file. No way

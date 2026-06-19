@@ -1,7 +1,10 @@
 === DQN FLIGHT SIM — COMMANDS & ARCHITECTURE ===
 
 --- Run ---
-  godot --path /home/soggy/Documents/GitHub/Capstone2PCASSIE
+  Normal:    godot --path /home/soggy/Documents/GitHub/Capstone2PCASSIE
+  Headless:  godot --headless --path /home/soggy/Documents/GitHub/Capstone2PCASSIE
+             (no rendering, 5x time scale, FPS uncapped — much faster training)
+             Physics still runs; obstacle detection, raycasts all work.
 
 --- Auto-Save ---
   Weights, epsilon, and training stats auto-save every 50 episodes

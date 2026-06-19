@@ -194,6 +194,11 @@ func _ready():
 	landing_gear_module = aircraft.find_modules_by_type("landing_gear").pop_front()
 	energy_container = aircraft.find_modules_by_type("energy_container").pop_front()
 
+	if OS.has_feature("headless"):
+		Engine.max_fps = -1
+		Engine.time_scale = 5.0
+		print("Headless mode — FPS uncapped, time scale 5x")
+
 	_init_network()
 	sumtree = SumTree.new(REPLAY_CAPACITY)
 	_init_run_id()
