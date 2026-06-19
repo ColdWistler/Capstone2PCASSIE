@@ -1,6 +1,27 @@
 === DQN OPTIMIZATION CHANGELOG ===
 
 ======================================================================
+FEATURE: Test mode with automated report generation
+======================================================================
+Problem: No way to evaluate a trained model's performance across
+multiple episodes and get quantitative metrics.
+
+Fix applied:
+  - Added --test / -t CLI flag: evaluates best model over 10 episodes
+    with greedy actions (epsilon=0) and no training.
+  - Spawns at altitude each episode (no takeoff phase).
+  - Tracks per-episode: reward, steps, landed/crashed/timeout status,
+    average altitude, stall count.
+  - Generates test_report.txt with formatted table + summary stats:
+      Avg/Min/Max reward, avg steps, avg altitude, avg stalls/ep,
+      landing success rate, crash count.
+  - Saves to user://test_report.txt (Godot user data folder).
+  - Combined with --headless for fast evaluation:
+      godot --headless --path . -- --test
+  - Integrated into existing episode end flow via _on_episode_end().
+    Normal training mode unchanged.
+
+======================================================================
 FEATURE: Headless training mode
 ======================================================================
 Problem: Training is slow due to rendering overhead and fixed 1x speed.
@@ -155,3 +176,25 @@ Fixes applied:
   - Load rejects saves below v4 (incompatible due to HIDDEN size
     change). Old saves are ignored, training starts fresh.
   - Load reads Adam state directly (no version branching needed).
+
+======================================================================
+FEATURE: Landing sequence
+======================================================================
+Problem: The agent flew at altitude until timeout (2000 steps). No
+landing ever occurred because the state has no runway position info,
+so the DQN couldn't learn to find and approach the runway.
+
+Fix applied:
+  - Added _do_landing() auto-pilot that activates at step 1700 (85%).
+  - Landing approach:
+      1. Steers toward origin (runway) using cross-track error
+      2. Descends at controlled rate: pitch -0.15, throttle 0.3 above 80m
+      3. Deploys landing gear below 80m
+      4. Flares (pitch +0.2) between 15m and 5m
+      5. Cuts throttle on touchdown
+      6. Bank angle limited near ground for stability
+  - DQN control suspended during landing (no training).
+  - Reward still accumulates from the landing performance (altitude,
+    speed, touchdown, etc.).
+  - Works in both normal and test mode.
+  - reset_episode() clears is_landing_mode for the next episode.

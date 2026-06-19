@@ -30,6 +30,8 @@ const TRAIN_INTERVAL = 2
 const CHUNK_SIZE = 16
 const SAVE_INTERVAL = 50
 const SAVE_VERSION = 4
+const TEST_EPISODES = 10
+const TEST_REPORT_PATH = "user://test_report.txt"
 
 var template_explosion = preload("res://example/scenes/Explosion/Explosion.tscn")
 var explosion_instance = null
@@ -113,6 +115,14 @@ var chunk_dwA = PackedFloat32Array()
 var chunk_dbA = PackedFloat32Array()
 var chunk_dwV = PackedFloat32Array()
 var chunk_dbV = 0.0
+
+# Test mode
+var test_mode = false
+var test_results = []
+var test_ep_alt_sum = 0.0
+var test_ep_stall_acc = 0
+
+var is_landing_mode = false
 
 class SumTree:
 	var tree: PackedFloat32Array
@@ -199,6 +209,12 @@ func _ready():
 		Engine.time_scale = 5.0
 		print("Headless mode — FPS uncapped, time scale 5x")
 
+	for arg in OS.get_cmdline_args():
+		if arg == "--test" or arg == "-t":
+			test_mode = true
+			print("TEST MODE — %d episodes, greedy actions, no training" % TEST_EPISODES)
+			break
+
 	_init_network()
 	sumtree = SumTree.new(REPLAY_CAPACITY)
 	_init_run_id()
@@ -214,6 +230,8 @@ func _ready():
 			print("Loaded saved weights (episode %d)" % episode_count)
 		else:
 			print("No saved weights found, starting fresh")
+	if test_mode:
+		takeoff_phase = false
 	initialize_aircraft()
 	if takeoff_phase:
 		print("Starting takeoff from runway...")
@@ -400,6 +418,87 @@ func _find_best_run() -> String:
 	return best_path
 
 
+func _on_episode_end():
+	if test_mode:
+		var alt_avg = test_ep_alt_sum / max(1, episode_step)
+		var crashed = is_done and not has_landed_safely
+		test_results.append({
+			"reward": episode_reward,
+			"steps": episode_step,
+			"landed": has_landed_safely,
+			"crashed": crashed,
+			"avg_alt": alt_avg,
+			"stalls": test_ep_stall_acc
+		})
+		var ep_idx = test_results.size()
+		var status = "LANDED" if has_landed_safely else ("CRASHED" if crashed else "TIMEOUT")
+		print("[%d/%d] ep %d | reward %.1f | steps %d | %s | avg_alt %.0f" %
+			[ep_idx, TEST_EPISODES, ep_idx, episode_reward, episode_step, status, alt_avg])
+		if ep_idx >= TEST_EPISODES:
+			_generate_test_report()
+			get_tree().quit()
+	else:
+		if episode_reward > best_reward:
+			best_reward = episode_reward
+		print("Episode %d | reward: %.1f | steps: %d | eps: %.3f | best: %.1f" %
+			[episode_count, episode_reward, episode_step, epsilon, best_reward])
+
+
+func _generate_test_report():
+	var total_r = 0.0
+	var total_steps = 0
+	var landings = 0
+	var crashes = 0
+	var alt_sum = 0.0
+	var stall_sum = 0
+	var alt_dev_sum = 0.0
+	var min_r = 1e9
+	var max_r = -1e9
+
+	var report = "=== DQN TEST REPORT ===\n"
+	report += "Model: dqn_run_%d.save\n" % run_id
+	report += "Episodes: %d\n\n" % test_results.size()
+	report += "%-8s %8s %6s %8s %7s %7s\n" % ["#", "Reward", "Steps", "Status", "AvgAlt", "Stalls"]
+
+	for i in range(test_results.size()):
+		var r = test_results[i]
+		var status = "LANDED" if r["landed"] else ("CRASH" if r["crashed"] else "TIMEOUT")
+		report += "%-8d %8.1f %6d %8s %7.0f %7d\n" % [i + 1, r["reward"], r["steps"], status, r["avg_alt"], r["stalls"]]
+		total_r += r["reward"]
+		total_steps += r["steps"]
+		alt_sum += r["avg_alt"]
+		stall_sum += r["stalls"]
+		if r["landed"]: landings += 1
+		if r["crashed"]: crashes += 1
+		if r["reward"] < min_r: min_r = r["reward"]
+		if r["reward"] > max_r: max_r = r["reward"]
+
+	var n = float(test_results.size())
+	var avg_r = total_r / n
+	var avg_steps = total_steps / n
+	var avg_alt = alt_sum / n
+	var avg_stalls = stall_sum / n
+	var success_rate = landings / n * 100.0
+
+	report += "\n--- Summary ---\n"
+	report += "Avg Reward:  %.1f (min %.1f, max %.1f)\n" % [avg_r, min_r, max_r]
+	report += "Avg Steps:   %.0f / %d\n" % [avg_steps, MAX_EPISODE_STEPS]
+	report += "Avg Alt:     %.0f m (target %d m)\n" % [avg_alt, TARGET_ALT]
+	report += "Avg Stalls:  %.1f / ep\n" % avg_stalls
+	report += "Landings:    %d / %d (%.0f%%)\n" % [landings, test_results.size(), success_rate]
+	report += "Crashes:     %d / %d\n" % [crashes, test_results.size()]
+
+	var file = FileAccess.open(TEST_REPORT_PATH, FileAccess.WRITE)
+	if file:
+		file.store_string(report)
+		file.close()
+		print("\nTest report saved to: %s" % TEST_REPORT_PATH)
+	else:
+		push_error("Failed to save test report")
+
+	print("\n" + report)
+
+
 func initialize_aircraft():
 	throttle_level = 0.5
 	pitch_level = 0.0
@@ -436,13 +535,18 @@ func reset_episode():
 	has_landed_safely = false
 	engine_was_running = false
 	takeoff_phase = false
-	episode_count += 1
-	if episode_count % SAVE_INTERVAL == 0:
-		save_weights()
+	if not test_mode:
+		episode_count += 1
+		if episode_count % SAVE_INTERVAL == 0:
+			save_weights()
 	prev_action = -1
+	is_landing_mode = false
 	train_counter = 0
 	chunk_ptr = -1
 	nstep_buffer.clear()
+	if test_mode:
+		test_ep_alt_sum = 0.0
+		test_ep_stall_acc = 0
 	initialize_aircraft()
 	prev_state = get_state()
 
@@ -863,6 +967,48 @@ func do_takeoff_step():
 	steering_module.set_z(roll_level)
 
 
+func _do_landing():
+	if not is_instance_valid(aircraft) or not is_instance_valid(engine_module) or not is_instance_valid(steering_module):
+		return
+
+	var pos = aircraft.global_transform.origin
+	var fwd = -aircraft.global_transform.basis.z
+	var alt = max(aircraft.local_altitude, 0.0)
+
+	var to_home = -pos
+	to_home.y = 0
+	var dist = to_home.length()
+
+	if dist > 1.0:
+		to_home = to_home.normalized()
+		var cross = fwd.cross(to_home).y
+		roll_level = clamp(cross * 3.0, -0.6, 0.6)
+	elif alt > 20:
+		roll_level = 0.0
+
+	if alt > 80:
+		pitch_level = -0.15
+		throttle_level = 0.3
+	elif alt > 15:
+		pitch_level = -0.08
+		throttle_level = 0.2
+		if is_instance_valid(landing_gear_module) and not landing_gear_module.is_deployed and not landing_gear_module.is_deploying:
+			landing_gear_module.deploy()
+	elif alt > 5:
+		pitch_level = 0.2
+		throttle_level = 0.05
+	else:
+		pitch_level = 0.0
+		throttle_level = 0.0
+
+	if alt < 30:
+		roll_level *= 0.3
+
+	steering_module.set_x(pitch_level)
+	steering_module.set_z(roll_level)
+	engine_module.engine_set_power(throttle_level)
+
+
 func _physics_process(_delta):
 	if not is_instance_valid(aircraft):
 		return
@@ -879,14 +1025,19 @@ func _physics_process(_delta):
 	if is_done:
 		if has_landed_safely:
 			episode_reward += 15.0
-		if episode_reward > best_reward:
-			best_reward = episode_reward
-		print("Episode %d | reward: %.1f | steps: %d | eps: %.3f | best: %.1f" % [episode_count, episode_reward, episode_step, epsilon, best_reward])
+		_on_episode_end()
 		reset_episode()
 		return
 
 	if takeoff_phase:
-		do_takeoff_step()
+		if test_mode:
+			takeoff_phase = false
+			episode_step = 0
+			episode_reward = 0.0
+			prev_action = -1
+			prev_state = get_state()
+		else:
+			do_takeoff_step()
 		return
 
 	frame_counter += 1
@@ -896,30 +1047,49 @@ func _physics_process(_delta):
 
 	frame_counter = 0
 
-	var state = get_state()
-	var action = select_action(state)
-	apply_action(action)
+	if not is_landing_mode and episode_step >= int(MAX_EPISODE_STEPS * 0.85):
+		is_landing_mode = true
+		print("Landing approach at step %d" % episode_step)
 
-	var next_state = get_state()
-	var reward = compute_reward()
-	if prev_action >= 0 and action != prev_action:
-		reward -= 0.02
-	prev_action = action
-	episode_step += 1
-	episode_reward += reward
-	var done = is_done or episode_step >= MAX_EPISODE_STEPS
+	if is_landing_mode:
+		_do_landing()
+		episode_step += 1
+		episode_reward += compute_reward()
+		var done = is_done or episode_step >= MAX_EPISODE_STEPS
+		if done:
+			_on_episode_end()
+			reset_episode()
+	else:
+		var state = get_state()
+		var action = select_action(state)
+		apply_action(action)
 
-	push_replay(state, action, reward, next_state, done)
-	train_counter += 1
-	if train_counter >= TRAIN_INTERVAL:
-		train_counter = 0
-		train_step()
+		if test_mode:
+			test_ep_alt_sum += aircraft.local_altitude
+			if aircraft.is_stalled:
+				test_ep_stall_acc += 1
 
-	if done:
-		if episode_reward > best_reward:
-			best_reward = episode_reward
-		print("Episode %d | reward: %.1f | steps: %d | eps: %.3f | best: %.1f" % [episode_count, episode_reward, episode_step, epsilon, best_reward])
-		reset_episode()
+		var next_state = get_state()
+		var reward = compute_reward()
+		if prev_action >= 0 and action != prev_action:
+			reward -= 0.02
+		prev_action = action
+		episode_step += 1
+		episode_reward += reward
+		var done = is_done or episode_step >= MAX_EPISODE_STEPS
+
+		if test_mode:
+			epsilon = 0.0
+		else:
+			push_replay(state, action, reward, next_state, done)
+			train_counter += 1
+			if train_counter >= TRAIN_INTERVAL:
+				train_counter = 0
+				train_step()
+
+		if done:
+			_on_episode_end()
+			reset_episode()
 
 
 func _on_BtnBack_pressed():
