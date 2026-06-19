@@ -1,0 +1,142 @@
+=== DQN OPTIMIZATION CHANGELOG ===
+
+======================================================================
+FEATURE: Multi-run save & best model auto-select
+======================================================================
+Problem: Each training session overwrote the same save file. No way
+to compare models across different training runs or auto-pick the best.
+
+Fixes applied:
+  - Added auto-incrementing run_id, persisted in dqn_meta.save.
+    Each game launch gets a unique run ID (1, 2, 3, ...).
+  - Save format now writes two files on each checkpoint:
+      dqn_weights.save         — current session (for seamless resume)
+      dqn_run_{RUN_ID}.save    — run's best model (only when best_reward
+                                 improves, preserves the actual weights
+                                 that achieved the best score)
+  - Added _find_best_run(): scans all dqn_run_*.save files on startup,
+    reads each file's best_reward field, returns the path of the best.
+  - Modified _ready(): tries loading the best run across all runs first.
+    If no run files exist, falls back to dqn_weights.save (current session).
+    If nothing exists, starts fresh with random weights.
+  - New functions: _init_run_id(), _write_weights_to(), _find_best_run()
+    with minimal code duplication.
+
+This means:
+  • Run 1: trains to best_reward=500. Saves dqn_run_0.save.
+  • Run 2: trains to best_reward=300. Saves dqn_run_1.save.
+  • Run 3 startup: automatically loads run 0's model (best=500).
+  • Run 3: trains further to best_reward=700. Saves dqn_run_2.save.
+  • Next startup: loads run 2's model (best=700).
+
+======================================================================
+ISSUE 1: Weak altitude maintenance
+======================================================================
+Problem: The agent didn't hold altitude well. The reward used a flat band
+(±50m around 200m) with weak magnitude (+1.0 max), and a competing speed
+reward (spd * 0.005) pulled the agent away from altitude holding.
+
+Fixes applied (compute_reward):
+  - Replaced flat band with smooth Gaussian centered at 200m:
+      exp(-dev^2 / (2 * 80^2)) * 3.0
+    Gives strong reward at target, smooth gradient toward it.
+  - Added vertical speed dampener: -abs(vs) * 0.05 when within 2 sigma
+    of target altitude. Penalizes climbing/descending through the hold zone.
+  - Added hard altitude floor: penalty below 50m that increases as
+    altitude drops: -(50 - alt) / 50 * 2.0. Prevents altitude loss.
+  - Capped speed reward: min(spd * 0.002, 0.3) instead of spd * 0.005.
+    Reduces the competing signal.
+  - Increased stall penalty: -0.5 -> -1.0.
+
+======================================================================
+ISSUE 2: Lag after training starts (frame skip too aggressive)
+======================================================================
+Problem: FRAMES_PER_STEP was reduced from 4 to 2, doubling the frequency
+of AI inference + training. The CPU (GDScript) couldn't keep up.
+
+Fix applied:
+  - Reverted FRAMES_PER_STEP back to 4.
+    Actions still run 15 times/sec, same as original code.
+
+======================================================================
+ISSUE 3: Progressive lag as replay buffer filled up
+======================================================================
+Problem: The training loop got heavier over time. BATCH_SIZE=64 with
+HIDDEN=256 was too much work per frame in GDScript.
+
+Fixes applied:
+  - Reduced BATCH_SIZE from 64 to 32 to cut per-step training cost.
+  - Added TRAIN_INTERVAL=2: only runs train_step() every 2 actions.
+    Halves training frequency while keeping action rate unchanged.
+  - Precomputed GAMMA_POW[] lookup table replaced pow(GAMMA, n_actual)
+    in the per-sample hot loop (eliminated expensive pow() call).
+
+======================================================================
+ISSUE 4: Lag spikes from training blocking the main thread
+======================================================================
+Problem: Processing the full batch (32 samples) in a single frame caused
+frame-time spikes that were visible as stutter.
+
+Fix applied (chunked training):
+  - Added CHUNK_SIZE=16: each train_step() call processes only 16
+    samples instead of the full batch.
+  - Gradients accumulate in chunk_dw1, chunk_db1, etc. across calls.
+  - When all chunks are processed (chunk_ptr >= BATCH_SIZE), Adam
+    update + Polyak averaging + epsilon decay are applied.
+  - BATCH_SIZE increased back to 64 with chunking. Per-frame work is
+    still 16 samples (same as BATCH_SIZE=16). No lag spikes.
+  - Full training step completes in 4 training calls (~0.5s at 60fps).
+  - chunk_ptr is reset on episode end to avoid stale state.
+
+======================================================================
+PERFORMANCE OPTIMIZATION: Adam optimizer
+======================================================================
+Problem: Original code used plain SGD with LR decay. Slow convergence
+and sensitive to learning rate tuning.
+
+Fix applied:
+  - Replaced SGD with Adam optimizer (beta1=0.9, beta2=0.999, eps=1e-8).
+  - Maintains first moment (m) and second moment (v) for each parameter.
+  - Bias correction applied each step: m_hat = m / (1 - beta1^t).
+  - LR decay preserved on top of Adam's adaptive per-param rates.
+  - Added _apply_adam() helper for vector params, inline for scalar bV.
+  - Added _polyak() helper for soft target updates.
+
+======================================================================
+PERFORMANCE OPTIMIZATION: N-step returns
+======================================================================
+Problem: Standard 1-step TD targets propagate rewards slowly through
+the value function.
+
+Fix applied:
+  - Added N_STEPS=3: accumulates up to 3 steps of reward before
+    bootstrapping with Q-values.
+  - Maintains nstep_buffer[] ring buffer of recent transitions.
+  - When buffer reaches N_STEPS (or episode ends), computes n-step
+    return and pushes (s, a, G, s', done, n_actual) to replay.
+  - Train step uses GAMMA_POW[n_actual] for correct discounting.
+
+======================================================================
+QUALITY OF LIFE: Action jitter reduction
+======================================================================
+Problem: Agent could oscillate between actions every frame, causing
+visually jittery control.
+
+Fix applied:
+  - Added -0.02 reward penalty when action != prev_action.
+  - prev_action tracked and reset on episode boundaries.
+  - Small enough to not interfere with meaningful action changes.
+
+======================================================================
+SAVE FORMAT: Version 4
+======================================================================
+Problem: Old save format (v3) didn't store Adam optimizer state.
+Loading a v3 save with new HIDDEN=256 architecture would crash.
+
+Fixes applied:
+  - SAVE_VERSION bumped to 4.
+  - Saves now include: m_w1, v_w1, m_b1, v_b1, m_wA, v_wA, m_bA,
+    v_bA, m_wV, v_wV, m_bV, v_bV, adam_step.
+  - Load rejects saves below v4 (incompatible due to HIDDEN size
+    change). Old saves are ignored, training starts fresh.
+  - Load reads Adam state directly (no version branching needed).
