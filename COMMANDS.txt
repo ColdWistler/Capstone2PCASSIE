@@ -5,6 +5,9 @@
   Headless:  godot --headless --path /home/soggy/Documents/GitHub/Capstone2PCASSIE
              (no rendering, 5x time scale, FPS uncapped — much faster training)
              Physics still runs; obstacle detection, raycasts all work.
+  Test:      godot --headless --path . -- --test
+             (evaluate best model over 10 episodes, greedy actions, no training,
+              saves test_report.txt with per-episode stats and summary)
 
 --- Auto-Save ---
   Weights, epsilon, and training stats auto-save every 50 episodes
@@ -77,4 +80,6 @@
     (-0.05 * |v/s|) near target; hard floor penalty below 50m to prevent
     altitude loss; speed reward capped at 0.3 to reduce competing signal
   • Hidden: 128 -> 256, Batch: 32 -> 64, Replay: 20k -> 50k
-  • Save format v4 (incompatible with old saves)
+  • Landing sequence: auto-pilot triggers at 85% episode (1700 steps).
+    Turns toward runway, descends gradually, deploys gear below 80m,
+    flares at 15m, touches down. Reward still accumulates during landing.
