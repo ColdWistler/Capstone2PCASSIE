@@ -2,8 +2,12 @@
 """Real-time system resource monitor with rolling history graphs.
 
 Usage:
-  python3 resource_monitor.py
-  (optionally) python3 resource_monitor.py --log resources.csv
+  python3 resource_monitor.py                          # manual mode
+  python3 resource_monitor.py -- <command> [args...]   # auto-launch + monitor
+
+Examples:
+  python3 resource_monitor.py -- godot --headless --path . -- --test
+  python3 resource_monitor.py -- python3 train.py
 
 Hotkeys:
   Space  — start/stop recording
@@ -19,7 +23,7 @@ from collections import deque
 from datetime import datetime
 
 import psutil
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import QProcess, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction, QColor, QFont, QKeySequence, QPainter, QPen
 from PyQt6.QtWidgets import (
     QApplication,
@@ -140,9 +144,16 @@ class GraphWidget(QWidget):
 
 
 class ResourceMonitor(QMainWindow):
-    def __init__(self):
+    def __init__(self, spawn_cmd=None):
         super().__init__()
-        self.setWindowTitle("Resource Monitor — DQN Flight Sim")
+        self.spawn_cmd = spawn_cmd
+        self.process = None
+        self.auto_mode = spawn_cmd is not None
+        title = "Resource Monitor"
+        if self.auto_mode:
+            name = " ".join(spawn_cmd[:3]) + ("..." if len(spawn_cmd) > 3 else "")
+            title = f"Resource Monitor — {name}"
+        self.setWindowTitle(title)
         self.setMinimumSize(900, 600)
 
         self.recording = False
@@ -160,6 +171,34 @@ class ResourceMonitor(QMainWindow):
         self.timer = QTimer()
         self.timer.timeout.connect(self._sample)
         self.timer.start(REFRESH_MS)
+
+        if self.auto_mode:
+            self._launch_subprocess()
+
+    def _launch_subprocess(self):
+        self.process = QProcess(self)
+        self.process.finished.connect(self._on_process_finished)
+        self.process.errorOccurred.connect(self._on_process_error)
+        cmd = self.spawn_cmd[0]
+        args = self.spawn_cmd[1:]
+        self.process.setProcessChannelMode(QProcess.ProcessChannelMode.ForwardedChannels)
+        self.process.start(cmd, args)
+        if self.process.waitForStarted(3000):
+            pid = self.process.processId()
+            self.statusBar.showMessage(f"Launched PID {pid} — recording auto-started")
+            self._toggle_recording()
+        else:
+            self.statusBar.showMessage(f"Failed to start: {cmd}")
+
+    def _on_process_finished(self, exit_code, exit_status):
+        self.statusBar.showMessage(f"Process exited (code {exit_code}) — stopping")
+        if self.recording:
+            self._toggle_recording()
+        self.btn_start.setEnabled(False)
+        QTimer.singleShot(2000, self.close)
+
+    def _on_process_error(self, error):
+        self.statusBar.showMessage(f"Process error: {error}")
 
     def _build_ui(self):
         central = QWidget()
@@ -357,13 +396,26 @@ class ResourceMonitor(QMainWindow):
     def closeEvent(self, event):
         if self.log_file:
             self.log_file.close()
+        if self.process and self.process.state() != QProcess.ProcessState.NotRunning:
+            self.process.terminate()
+            if not self.process.waitForFinished(3000):
+                self.process.kill()
         event.accept()
 
 
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Resource Monitor")
-    win = ResourceMonitor()
+
+    spawn_cmd = None
+    if "--" in sys.argv:
+        idx = sys.argv.index("--")
+        spawn_cmd = sys.argv[idx + 1:]
+        if not spawn_cmd:
+            print("error: nothing after --", file=sys.stderr)
+            sys.exit(1)
+
+    win = ResourceMonitor(spawn_cmd=spawn_cmd)
     win.show()
     sys.exit(app.exec())
 
