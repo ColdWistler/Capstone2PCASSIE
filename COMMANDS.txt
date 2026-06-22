@@ -7,7 +7,8 @@
              Physics still runs; obstacle detection, raycasts all work.
   Test:      godot --headless --path . -- --test
              (evaluate best model over 10 episodes, greedy actions, no training,
-              saves test_report.txt with per-episode stats and summary)
+              saves test_report.txt + test_report.html with per-episode stats,
+              summary, and SVG reward chart)
 
 --- Auto-Save ---
   Weights, epsilon, and training stats auto-save every 50 episodes
@@ -83,3 +84,15 @@
   • Landing sequence: auto-pilot triggers at 85% episode (1700 steps).
     Turns toward runway, descends gradually, deploys gear below 80m,
     flares at 15m, touches down. Reward still accumulates during landing.
+
+--- Report Generation ---
+  Requires:  pip install -r requirements-telemetry.txt (or use venv/)
+  Usage:     python3 generate_report.py
+             (reads telemetry/telemetry.jsonl, writes reports/report.html)
+  Args:      -t PATH    telemetry JSONL path (default: telemetry/telemetry.jsonl)
+             -r PATH    test_report.txt path (auto-detected from Godot user data)
+             -o NAME    output filename in reports/ (default: report.html)
+  Example:   python3 generate_report.py -t telemetry/telemetry.jsonl -r ~/.local/share/godot/app_userdata/Flight\ Sim/test_report.txt
+  Output:    Interactive HTML with altitude, speed, attitude, flight path,
+             engine/fuel, g-force charts + per-episode reward bars and
+             test summary table.

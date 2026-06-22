@@ -32,6 +32,7 @@ const SAVE_INTERVAL = 50
 const SAVE_VERSION = 4
 const TEST_EPISODES = 10
 const TEST_REPORT_PATH = "user://test_report.txt"
+const TEST_REPORT_HTML_PATH = "user://test_report.html"
 
 var template_explosion = preload("res://example/scenes/Explosion/Explosion.tscn")
 var explosion_instance = null
@@ -451,7 +452,6 @@ func _generate_test_report():
 	var crashes = 0
 	var alt_sum = 0.0
 	var stall_sum = 0
-	var alt_dev_sum = 0.0
 	var min_r = 1e9
 	var max_r = -1e9
 
@@ -493,10 +493,129 @@ func _generate_test_report():
 		file.store_string(report)
 		file.close()
 		print("\nTest report saved to: %s" % TEST_REPORT_PATH)
+		_generate_html_report(avg_r, min_r, max_r, avg_steps, avg_alt, avg_stalls, landings, crashes, success_rate)
 	else:
 		push_error("Failed to save test report")
 
 	print("\n" + report)
+
+
+func _generate_html_report(avg_r: float, min_r: float, max_r: float, avg_steps: float, avg_alt: float, avg_stalls: float, landings: int, crashes: int, success_rate: float):
+	var svg_w = 800
+	var svg_h = 300
+	var margin_l = 60
+	var margin_r = 20
+	var margin_t = 30
+	var margin_b = 50
+	var plot_w = svg_w - margin_l - margin_r
+	var plot_h = svg_h - margin_t - margin_b
+
+	var ep_count = test_results.size()
+	var max_r_chart = max_r
+	var min_r_chart = min_r
+	var r_range = max_r_chart - min_r_chart
+	if r_range < 1.0:
+		r_range = 1.0
+
+	var svg_bars = ""
+	for i in range(ep_count):
+		var r = test_results[i]
+		var x = margin_l + (float(i) + 0.15) * plot_w / ep_count
+		var bar_w = plot_w / ep_count * 0.7
+		var val_h = (r["reward"] - min_r_chart) / r_range * plot_h
+		var y = margin_t + plot_h - val_h
+		var color = "#22c55e" if r["landed"] else ("#ef4444" if r["crashed"] else "#f59e0b")
+		svg_bars += "<rect x='%.1f' y='%.1f' width='%.1f' height='%.1f' fill='%s'/>\n" % [x, y, bar_w, val_h, color]
+
+	var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' style='background:#fff;border-radius:8px'>\n" % [svg_w, svg_h]
+	# Y axis line
+	svg += "<line x1='%.1f' y1='%d' x2='%.1f' y2='%d' stroke='#ccc' stroke-width='1'/>\n" % [margin_l, margin_t, margin_l, margin_t + plot_h]
+	# X axis line
+	svg += "<line x1='%.1f' y1='%d' x2='%d' y2='%d' stroke='#ccc' stroke-width='1'/>\n" % [margin_l, margin_t + plot_h, svg_w - margin_r, margin_t + plot_h]
+	# Y labels
+	var y_ticks = 5
+	for t in range(y_ticks + 1):
+		var frac = float(t) / y_ticks
+		var val = min_r_chart + frac * r_range
+		var y = margin_t + plot_h - frac * plot_h
+		svg += "<text x='%.1f' y='%.1f' text-anchor='end' fill='#666' font-size='12'>%.0f</text>\n" % [margin_l - 8, y + 4, val]
+		if t > 0 and t < y_ticks:
+			svg += "<line x1='%.1f' y1='%.1f' x2='%d' y2='%.1f' stroke='#eee' stroke-width='1'/>\n" % [margin_l, y, svg_w - margin_r, y]
+	# X labels
+	for i in range(ep_count):
+		var x = margin_l + (float(i) + 0.5) * plot_w / ep_count
+		svg += "<text x='%.1f' y='%.1f' text-anchor='middle' fill='#666' font-size='11'>%d</text>\n" % [x, margin_t + plot_h + 18, i + 1]
+	svg += "<text x='%d' y='%d' text-anchor='middle' fill='#666' font-size='12'>Episode</text>\n" % [svg_w / 2, margin_t + plot_h + 38]
+	svg += "<text x='12' y='%d' text-anchor='middle' fill='#666' font-size='12' transform='rotate(-90,12,%d)'>Reward</text>\n" % [margin_t + plot_h / 2, margin_t + plot_h / 2]
+	# Bars
+	svg += svg_bars
+	# Legend
+	var lx = svg_w - 200
+	var ly = margin_t + 5
+	svg += "<rect x='%d' y='%d' width='12' height='12' fill='#22c55e'/><text x='%d' y='%d' fill='#666' font-size='12'>Landed</text>\n" % [lx, ly, lx + 16, ly + 11]
+	svg += "<rect x='%d' y='%d' width='12' height='12' fill='#ef4444'/><text x='%d' y='%d' fill='#666' font-size='12'>Crashed</text>\n" % [lx, ly + 18, lx + 16, ly + 29]
+	svg += "<rect x='%d' y='%d' width='12' height='12' fill='#f59e0b'/><text x='%d' y='%d' fill='#666' font-size='12'>Timeout</text>\n" % [lx, ly + 36, lx + 16, ly + 47]
+	svg += "</svg>"
+
+	var status_colors = {"LANDED": "#22c55e", "CRASH": "#ef4444", "TIMEOUT": "#f59e0b"}
+	var ep_rows = ""
+	for i in range(test_results.size()):
+		var r = test_results[i]
+		var status = "LANDED" if r["landed"] else ("CRASH" if r["crashed"] else "TIMEOUT")
+		var sc = status_colors[status]
+		ep_rows += "<tr><td>%d</td><td>%.1f</td><td>%d</td><td><span style='color:%s;font-weight:600'>%s</span></td><td>%.0f</td><td>%d</td></tr>\n" % [i + 1, r["reward"], r["steps"], sc, status, r["avg_alt"], r["stalls"]]
+
+	var html = "<!DOCTYPE html>\n<html lang='en'>\n<head>\n<meta charset='UTF-8'>\n"
+	html += "<meta name='viewport' content='width=device-width,initial-scale=1.0'>\n"
+	html += "<title>DQN Test Report</title>\n"
+	html += "<style>\n"
+	html += "*{margin:0;padding:0;box-sizing:border-box}\n"
+	html += "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;color:#333;padding:20px}\n"
+	html += ".container{max-width:900px;margin:0 auto}\n"
+	html += "h1{text-align:center;margin-bottom:5px;color:#1a1a2e}\n"
+	html += ".subtitle{text-align:center;color:#666;margin-bottom:25px}\n"
+	html += ".section{background:#fff;border-radius:8px;padding:20px;margin-bottom:20px;box-shadow:0 2px 4px rgba(0,0,0,0.1)}\n"
+	html += "h2{margin-bottom:15px;color:#1a1a2e;border-bottom:2px solid #e0e0e0;padding-bottom:8px}\n"
+	html += "table{width:100%;border-collapse:collapse;margin-bottom:10px}\n"
+	html += "th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #e0e0e0}\n"
+	html += "th{background:#f8f9fa;font-weight:600}\n"
+	html += "tr:hover{background:#f1f3f5}\n"
+	html += ".chart{text-align:center;margin:15px 0}\n"
+	html += "</style>\n</head>\n<body>\n"
+	html += "<div class='container'>\n"
+	html += "<h1>DQN Flight Sim — Test Report</h1>\n"
+	html += "<p class='subtitle'>Model: dqn_run_%d.save &middot; %d episodes</p>\n" % [run_id, ep_count]
+
+	# Summary section
+	html += "<div class='section'><h2>Summary</h2>\n<table>\n"
+	html += "<tr><th>Metric</th><th>Value</th></tr>\n"
+	html += "<tr><td>Avg Reward</td><td>%.1f (min %.1f, max %.1f)</td></tr>\n" % [avg_r, min_r, max_r]
+	html += "<tr><td>Avg Steps</td><td>%.0f / %d</td></tr>\n" % [avg_steps, MAX_EPISODE_STEPS]
+	html += "<tr><td>Avg Altitude</td><td>%.0f m (target %d m)</td></tr>\n" % [avg_alt, TARGET_ALT]
+	html += "<tr><td>Avg Stalls / ep</td><td>%.1f</td></tr>\n" % avg_stalls
+	html += "<tr><td>Landings</td><td>%d / %d (%.0f%%)</td></tr>\n" % [landings, ep_count, success_rate]
+	html += "<tr><td>Crashes</td><td>%d / %d</td></tr>\n" % [crashes, ep_count]
+	html += "</table>\n</div>\n"
+
+	# Chart section
+	html += "<div class='section'><h2>Per-Episode Rewards</h2>\n<div class='chart'>\n"
+	html += svg + "\n</div>\n</div>\n"
+
+	# Per-episode table
+	html += "<div class='section'><h2>Episode Details</h2>\n<table>\n"
+	html += "<tr><th>#</th><th>Reward</th><th>Steps</th><th>Status</th><th>Avg Alt</th><th>Stalls</th></tr>\n"
+	html += ep_rows
+	html += "</table>\n</div>\n"
+
+	html += "</div>\n</body>\n</html>"
+
+	var hfile = FileAccess.open(TEST_REPORT_HTML_PATH, FileAccess.WRITE)
+	if hfile:
+		hfile.store_string(html)
+		hfile.close()
+		print("HTML report saved to: %s" % TEST_REPORT_HTML_PATH)
+	else:
+		push_error("Failed to save HTML report")
 
 
 func initialize_aircraft():

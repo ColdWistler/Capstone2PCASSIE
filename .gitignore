@@ -16,3 +16,6 @@ mono_crash.*.json
 
 *.bak
 docs/*.import
+telemetry/
+reports/
+venv/
