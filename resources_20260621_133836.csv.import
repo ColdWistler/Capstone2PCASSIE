@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bld3pynex2f12"
+
+[deps]
+
+files=["res://resources_20260621_133836.cpu.translation", "res://resources_20260621_133836.mem.translation", "res://resources_20260621_133836.gpu.translation", "res://resources_20260621_133836.gpu.translation", "res://resources_20260621_133836.disk.translation", "res://resources_20260621_133836.disk.translation"]
+
+source_file="res://resources_20260621_133836.csv"
+dest_files=["res://resources_20260621_133836.cpu.translation", "res://resources_20260621_133836.mem.translation", "res://resources_20260621_133836.gpu.translation", "res://resources_20260621_133836.gpu.translation", "res://resources_20260621_133836.disk.translation", "res://resources_20260621_133836.disk.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
