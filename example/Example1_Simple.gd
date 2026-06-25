@@ -33,6 +33,7 @@ const SAVE_VERSION = 4
 const TEST_EPISODES = 10
 const TEST_REPORT_PATH = "user://test_report.txt"
 const TEST_REPORT_HTML_PATH = "user://test_report.html"
+const CSV_LOG_PATH = "user://dqn_training.csv"
 
 var template_explosion = preload("res://example/scenes/Explosion/Explosion.tscn")
 var explosion_instance = null
@@ -443,6 +444,21 @@ func _on_episode_end():
 			best_reward = episode_reward
 		print("Episode %d | reward: %.1f | steps: %d | eps: %.3f | best: %.1f" %
 			[episode_count, episode_reward, episode_step, epsilon, best_reward])
+		_log_episode_to_csv()
+
+
+func _log_episode_to_csv():
+	var file = FileAccess.open(CSV_LOG_PATH, FileAccess.WRITE_READ)
+	if not file:
+		return
+	if file.get_length() == 0:
+		file.store_string("episode,reward,steps,epsilon,best_reward,global_step,landed\n")
+	else:
+		file.seek_end()
+	file.store_string("%d,%.2f,%d,%.4f,%.2f,%d,%d\n" % [
+		episode_count, episode_reward, episode_step, epsilon, best_reward, step_count, 1 if has_landed_safely else 0
+	])
+	file.close()
 
 
 func _generate_test_report():
