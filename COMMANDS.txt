@@ -1,6 +1,6 @@
 === DQN FLIGHT SIM — COMMANDS & ARCHITECTURE ===
 
---- Run ---
+--- Run (Simple scene) ---
   Normal:    godot --path /home/soggy/Documents/GitHub/Capstone2PCASSIE
   Headless:  godot --headless --path /home/soggy/Documents/GitHub/Capstone2PCASSIE
              (no rendering, 5x time scale, FPS uncapped — much faster training)
@@ -9,6 +9,12 @@
              (evaluate best model over 10 episodes, greedy actions, no training,
               saves test_report.txt + test_report.html with per-episode stats,
               summary, and SVG reward chart)
+
+--- Run (Complex scene — mountains, refueling, 4 engines) ---
+  Normal:    godot --path . res://example/Example2_Complex.tscn
+  Headless:  godot --headless --path . res://example/Example2_Complex.tscn
+  Test:      godot --headless --path . res://example/Example2_Complex.tscn -- --test
+             (uses dqn_complex_* save files, reports to test_report_complex.txt)
 
 --- Auto-Save ---
   Weights, epsilon, and training stats auto-save every 50 episodes
