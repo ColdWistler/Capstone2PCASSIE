@@ -75,6 +75,9 @@ var test_ep_stall_acc = 0
 
 var is_landing_mode = false
 
+# CSV data logger (optional — logs telemetry + DQN data to telemetry/csv/)
+var csv_exporter = null
+
 
 func _ready():
 	aircraft.connect("crashed", Callable(self, "_on_Aircraft_crashed"))
@@ -121,6 +124,18 @@ func _ready():
 			print("No saved weights found, starting fresh")
 	if test_mode:
 		takeoff_phase = false
+	# Set up CSV exporter (logs telemetry + DQN data to telemetry/csv/)
+	var CsvExporterScript = load("res://addons/simplified_flightsim/TelemetryExporter/TelemetryCsvExporter.gd")
+	if CsvExporterScript:
+		csv_exporter = CsvExporterScript.new()
+		csv_exporter.aircraft_ref = aircraft
+		csv_exporter.dqn_agent = agent
+		csv_exporter.DQNStateDim = STATE_DIM
+		csv_exporter.DQNActionDim = ACTION_DIM
+		csv_exporter.ExportIntervalFrames = 3
+		csv_exporter.WeightSaveIntervalEpisodes = 10
+		add_child(csv_exporter)
+		print("CSV exporter initialized")
 	initialize_aircraft()
 	if takeoff_phase:
 		print("Starting takeoff from runway...")
@@ -708,6 +723,10 @@ func _physics_process(_delta):
 		_do_landing()
 		episode_step += 1
 		episode_reward += compute_reward()
+		if csv_exporter and is_instance_valid(csv_exporter):
+			var empty_q = []
+			empty_q.resize(agent.action_dim)
+			csv_exporter.set_dqn_data(-1, [], empty_q, 0.0, epsilon, episode_count, agent.get_step_count())
 		var done = is_done or episode_step >= MAX_EPISODE_STEPS
 		if done:
 			_on_episode_end()
@@ -732,6 +751,9 @@ func _physics_process(_delta):
 		var reward = compute_reward()
 		if prev_action >= 0 and action != prev_action:
 			reward -= 0.02
+		if csv_exporter and is_instance_valid(csv_exporter):
+			var q_values = agent.predict_q(PackedFloat32Array(state))
+			csv_exporter.set_dqn_data(action, state, q_values, reward, epsilon, episode_count, agent.get_step_count())
 		prev_action = action
 		episode_step += 1
 		episode_reward += reward
