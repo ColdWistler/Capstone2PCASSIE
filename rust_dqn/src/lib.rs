@@ -24,10 +24,13 @@ struct DQNRust {
 
     state_dim: usize,
     action_dim: usize,
-    hidden: usize,
+    hidden1: usize,
+    hidden2: usize,
 
     w1: Vec<f32>,
     b1: Vec<f32>,
+    w2: Vec<f32>,
+    b2: Vec<f32>,
     wA: Vec<f32>,
     bA: Vec<f32>,
     wV: Vec<f32>,
@@ -35,6 +38,8 @@ struct DQNRust {
 
     w1t: Vec<f32>,
     b1t: Vec<f32>,
+    w2t: Vec<f32>,
+    b2t: Vec<f32>,
     wAt: Vec<f32>,
     bAt: Vec<f32>,
     wVt: Vec<f32>,
@@ -44,6 +49,10 @@ struct DQNRust {
     v_w1: Vec<f32>,
     m_b1: Vec<f32>,
     v_b1: Vec<f32>,
+    m_w2: Vec<f32>,
+    v_w2: Vec<f32>,
+    m_b2: Vec<f32>,
+    v_b2: Vec<f32>,
     m_wA: Vec<f32>,
     v_wA: Vec<f32>,
     m_bA: Vec<f32>,
@@ -67,14 +76,16 @@ struct DQNRust {
 #[godot_api]
 impl DQNRust {
     #[func]
-    fn init(&mut self, state_dim: i32, action_dim: i32, hidden: i32, replay_capacity: i32, n_steps: i32, gamma: f64) {
+    fn init(&mut self, state_dim: i32, action_dim: i32, hidden1: i32, hidden2: i32, replay_capacity: i32, n_steps: i32, gamma: f64) {
         let sd = state_dim as usize;
         let ad = action_dim as usize;
-        let h = hidden as usize;
+        let h1 = hidden1 as usize;
+        let h2 = hidden2 as usize;
 
         self.state_dim = sd;
         self.action_dim = ad;
-        self.hidden = h;
+        self.hidden1 = h1;
+        self.hidden2 = h2;
         self.n_steps = n_steps as usize;
 
         let mut gp = Vec::with_capacity(self.n_steps + 1);
@@ -87,34 +98,49 @@ impl DQNRust {
         self.gamma_pow = gp;
 
         let mut rng = rand::thread_rng();
-        let w1_len = h * sd;
+
+        let w1_len = h1 * sd;
         self.w1 = (0..w1_len).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
-        self.b1 = vec![0.0f32; h];
-        self.wA = (0..ad * h).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
+        self.b1 = vec![0.0f32; h1];
+
+        let w2_len = h2 * h1;
+        self.w2 = (0..w2_len).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
+        self.b2 = vec![0.0f32; h2];
+
+        self.wA = (0..ad * h2).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
         self.bA = vec![0.0f32; ad];
-        self.wV = (0..h).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
+        self.wV = (0..h2).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
         self.bV = 0.0;
 
-        let zero_w1 = vec![0.0f32; w1_len];
-        let zero_h = vec![0.0f32; h];
-        let zero_ah = vec![0.0f32; ad * h];
-        let zero_a = vec![0.0f32; ad];
-        self.m_w1 = zero_w1.clone();
-        self.v_w1 = zero_w1;
-        self.m_b1 = zero_h.clone();
-        self.v_b1 = zero_h.clone();
-        self.m_wA = zero_ah.clone();
-        self.v_wA = zero_ah;
-        self.m_bA = zero_a.clone();
-        self.v_bA = zero_a;
-        self.m_wV = zero_h.clone();
-        self.v_wV = zero_h;
+        let z_w1 = vec![0.0f32; w1_len];
+        let z_h1 = vec![0.0f32; h1];
+        let z_w2 = vec![0.0f32; w2_len];
+        let z_h2 = vec![0.0f32; h2];
+        let z_ah2 = vec![0.0f32; ad * h2];
+        let z_a = vec![0.0f32; ad];
+
+        self.m_w1 = z_w1.clone();
+        self.v_w1 = z_w1;
+        self.m_b1 = z_h1.clone();
+        self.v_b1 = z_h1.clone();
+        self.m_w2 = z_w2.clone();
+        self.v_w2 = z_w2;
+        self.m_b2 = z_h2.clone();
+        self.v_b2 = z_h2.clone();
+        self.m_wA = z_ah2.clone();
+        self.v_wA = z_ah2;
+        self.m_bA = z_a.clone();
+        self.v_bA = z_a;
+        self.m_wV = z_h2.clone();
+        self.v_wV = z_h2;
         self.m_bV = 0.0;
         self.v_bV = 0.0;
         self.adam_step = 0;
 
         self.w1t = self.w1.clone();
         self.b1t = self.b1.clone();
+        self.w2t = self.w2.clone();
+        self.b2t = self.b2.clone();
         self.wAt = self.wA.clone();
         self.bAt = self.bA.clone();
         self.wVt = self.wV.clone();
@@ -127,36 +153,43 @@ impl DQNRust {
         self.epsilon = 1.0;
     }
 
-    fn forward_inner(&self, x: &[f32], use_target: bool) -> (Vec<f32>, f32, Vec<f32>, Vec<f32>) {
-        let (w1, b1, wA, bA, wV, bV) = if use_target {
-            (&self.w1t, &self.b1t, &self.wAt, &self.bAt, &self.wVt, self.bVt)
+    fn relu_activations(x: &[f32], w: &[f32], b: &[f32], n_out: usize, n_in: usize) -> Vec<f32> {
+        let mut out = Vec::with_capacity(n_out);
+        for i in 0..n_out {
+            let mut s = b[i];
+            for j in 0..n_in {
+                s += w[i * n_in + j] * x[j];
+            }
+            out.push(if s > 0.0 { s } else { 0.0 });
+        }
+        out
+    }
+
+    fn forward_inner(&self, x: &[f32], use_target: bool) -> (Vec<f32>, Vec<f32>, f32, Vec<f32>, Vec<f32>) {
+        let (w1, b1, w2, b2, wA, bA, wV, bV) = if use_target {
+            (&self.w1t, &self.b1t, &self.w2t, &self.b2t, &self.wAt, &self.bAt, &self.wVt, self.bVt)
         } else {
-            (&self.w1, &self.b1, &self.wA, &self.bA, &self.wV, self.bV)
+            (&self.w1, &self.b1, &self.w2, &self.b2, &self.wA, &self.bA, &self.wV, self.bV)
         };
 
         let sd = self.state_dim;
+        let h1 = self.hidden1;
+        let h2 = self.hidden2;
         let ad = self.action_dim;
-        let h = self.hidden;
 
-        let mut hidden = Vec::with_capacity(h);
-        for hi in 0..h {
-            let mut s = b1[hi];
-            for j in 0..sd {
-                s += w1[hi * sd + j] * x[j];
-            }
-            hidden.push(if s > 0.0 { s } else { 0.0 });
-        }
+        let h1_vec = Self::relu_activations(x, w1, b1, h1, sd);
+        let h2_vec = Self::relu_activations(&h1_vec, w2, b2, h2, h1);
 
         let mut V = bV;
-        for hi in 0..h {
-            V += wV[hi] * hidden[hi];
+        for hi in 0..h2 {
+            V += wV[hi] * h2_vec[hi];
         }
 
         let mut A = Vec::with_capacity(ad);
         for ai in 0..ad {
             let mut s = bA[ai];
-            for hi in 0..h {
-                s += wA[ai * h + hi] * hidden[hi];
+            for hi in 0..h2 {
+                s += wA[ai * h2 + hi] * h2_vec[hi];
             }
             A.push(s);
         }
@@ -164,15 +197,16 @@ impl DQNRust {
         let meanA = A.iter().sum::<f32>() / ad as f32;
         let Q: Vec<f32> = A.iter().map(|a| V + a - meanA).collect();
 
-        (hidden, V, A, Q)
+        (h1_vec, h2_vec, V, A, Q)
     }
 
     #[func]
     fn forward(&self, x: PackedFloat32Array, use_target: bool) -> Dictionary<GString, Variant> {
         let x_vec: Vec<f32> = x.to_vec();
-        let (h, V, A, Q) = self.forward_inner(&x_vec, use_target);
+        let (h1, h2, V, A, Q) = self.forward_inner(&x_vec, use_target);
         let mut dict: Dictionary<GString, Variant> = Dictionary::new();
-        dict.set("h", &PackedFloat32Array::from(h.as_slice()));
+        dict.set("h1", &PackedFloat32Array::from(h1.as_slice()));
+        dict.set("h2", &PackedFloat32Array::from(h2.as_slice()));
         dict.set("V", &Variant::from(V as f64));
         dict.set("A", &PackedFloat32Array::from(A.as_slice()));
         dict.set("Q", &PackedFloat32Array::from(Q.as_slice()));
@@ -182,7 +216,7 @@ impl DQNRust {
     #[func]
     fn predict_q(&self, state: PackedFloat32Array) -> PackedFloat32Array {
         let x_vec: Vec<f32> = state.to_vec();
-        let (_, _, _, Q) = self.forward_inner(&x_vec, false);
+        let (_, _, _, _, Q) = self.forward_inner(&x_vec, false);
         PackedFloat32Array::from(Q.as_slice())
     }
 
@@ -193,7 +227,7 @@ impl DQNRust {
             return rng.gen_range(0..self.action_dim) as i32;
         }
         let x_vec: Vec<f32> = state.to_vec();
-        let (_, _, _, Q) = self.forward_inner(&x_vec, false);
+        let (_, _, _, _, Q) = self.forward_inner(&x_vec, false);
         let mut best = 0;
         for i in 1..Q.len() {
             if Q[i] > Q[best] {
@@ -276,13 +310,16 @@ impl DQNRust {
 
         let sd = self.state_dim;
         let ad = self.action_dim;
-        let h = self.hidden;
+        let h1 = self.hidden1;
+        let h2 = self.hidden2;
 
-        let mut dw1 = vec![0.0f32; h * sd];
-        let mut db1 = vec![0.0f32; h];
-        let mut dwA = vec![0.0f32; ad * h];
+        let mut dw1 = vec![0.0f32; h1 * sd];
+        let mut db1 = vec![0.0f32; h1];
+        let mut dw2 = vec![0.0f32; h2 * h1];
+        let mut db2 = vec![0.0f32; h2];
+        let mut dwA = vec![0.0f32; ad * h2];
         let mut dbA = vec![0.0f32; ad];
-        let mut dwV = vec![0.0f32; h];
+        let mut dwV = vec![0.0f32; h2];
         let mut dbV = 0.0f32;
 
         for i in 0..bs {
@@ -294,8 +331,8 @@ impl DQNRust {
             let d = item.done;
             let n_actual = item.n_actual as usize;
 
-            let (h_vec, _V_s, _A_s, Q_s) = self.forward_inner(s, false);
-            let (_, _, _, Q_on) = self.forward_inner(ns, false);
+            let (h1_vec, h2_vec, _V_s, _A_s, Q_s) = self.forward_inner(s, false);
+            let (_, _, _, _, Q_on) = self.forward_inner(ns, false);
 
             let mut best_a = 0;
             for j in 1..Q_on.len() {
@@ -304,7 +341,7 @@ impl DQNRust {
                 }
             }
 
-            let (_, _, _, Q_tg) = self.forward_inner(ns, true);
+            let (_, _, _, _, Q_tg) = self.forward_inner(ns, true);
             let target_val = if d { 0.0 } else { self.gamma_pow[n_actual].min(1.0) * Q_tg[best_a] };
             let target = r + target_val;
 
@@ -318,38 +355,61 @@ impl DQNRust {
             let mut dQ = 2.0 * (Q_s[a] - target) / bs as f32;
             dQ *= is_weights[i];
 
-            let dV_grad = dQ;
-            let mut dA_grad = vec![-dQ / ad as f32; ad];
-            dA_grad[a] += dQ;
+            let dV = dQ;
+            let mut dA = vec![-dQ / ad as f32; ad];
+            dA[a] += dQ;
 
-            for hi in 0..h {
-                dwV[hi] += dV_grad * h_vec[hi];
+            // Gradients for wV, bV (from h2)
+            for hi in 0..h2 {
+                dwV[hi] += dV * h2_vec[hi];
             }
-            dbV += dV_grad;
+            dbV += dV;
 
+            // Gradients for wA, bA (from h2)
             for ai in 0..ad {
-                let dai = dA_grad[ai];
-                for hi in 0..h {
-                    dwA[ai * h + hi] += dai * h_vec[hi];
+                let dai = dA[ai];
+                for hi in 0..h2 {
+                    dwA[ai * h2 + hi] += dai * h2_vec[hi];
                 }
                 dbA[ai] += dai;
             }
 
-            let mut grad_h = vec![0.0f32; h];
-            for hi in 0..h {
-                let mut ssum = dV_grad * self.wV[hi];
+            // Backprop through second ReLU -> grad_h2
+            let mut grad_h2 = vec![0.0f32; h2];
+            for hi in 0..h2 {
+                let mut ssum = dV * self.wV[hi];
                 for ai in 0..ad {
-                    ssum += dA_grad[ai] * self.wA[ai * h + hi];
+                    ssum += dA[ai] * self.wA[ai * h2 + hi];
                 }
-                grad_h[hi] = if h_vec[hi] > 0.0 { ssum } else { 0.0 };
+                grad_h2[hi] = if h2_vec[hi] > 0.0 { ssum } else { 0.0 };
             }
 
-            for hi in 0..h {
-                let ghi = grad_h[hi];
-                for j in 0..sd {
-                    dw1[hi * sd + j] += ghi * s[j];
+            // Gradients for w2, b2 (from h1)
+            for hi in 0..h2 {
+                let g = grad_h2[hi];
+                for j in 0..h1 {
+                    dw2[hi * h1 + j] += g * h1_vec[j];
                 }
-                db1[hi] += ghi;
+                db2[hi] += g;
+            }
+
+            // Backprop through w2 -> grad_h1
+            let mut grad_h1 = vec![0.0f32; h1];
+            for j in 0..h1 {
+                let mut ssum = 0.0f32;
+                for hi in 0..h2 {
+                    ssum += grad_h2[hi] * self.w2[hi * h1 + j];
+                }
+                grad_h1[j] = if h1_vec[j] > 0.0 { ssum } else { 0.0 };
+            }
+
+            // Gradients for w1, b1
+            for hi in 0..h1 {
+                let g = grad_h1[hi];
+                for j in 0..sd {
+                    dw1[hi * sd + j] += g * s[j];
+                }
+                db1[hi] += g;
             }
         }
 
@@ -357,6 +417,8 @@ impl DQNRust {
         if gc > 0.0 {
             for v in dw1.iter_mut() { *v = v.clamp(-gc, gc); }
             for v in db1.iter_mut() { *v = v.clamp(-gc, gc); }
+            for v in dw2.iter_mut() { *v = v.clamp(-gc, gc); }
+            for v in db2.iter_mut() { *v = v.clamp(-gc, gc); }
             for v in dwA.iter_mut() { *v = v.clamp(-gc, gc); }
             for v in dbA.iter_mut() { *v = v.clamp(-gc, gc); }
             for v in dwV.iter_mut() { *v = v.clamp(-gc, gc); }
@@ -371,6 +433,8 @@ impl DQNRust {
 
         apply_adam(&dw1, &mut self.w1, &mut self.m_w1, &mut self.v_w1, current_lr, b1c, b2c);
         apply_adam(&db1, &mut self.b1, &mut self.m_b1, &mut self.v_b1, current_lr, b1c, b2c);
+        apply_adam(&dw2, &mut self.w2, &mut self.m_w2, &mut self.v_w2, current_lr, b1c, b2c);
+        apply_adam(&db2, &mut self.b2, &mut self.m_b2, &mut self.v_b2, current_lr, b1c, b2c);
         apply_adam(&dwA, &mut self.wA, &mut self.m_wA, &mut self.v_wA, current_lr, b1c, b2c);
         apply_adam(&dbA, &mut self.bA, &mut self.m_bA, &mut self.v_bA, current_lr, b1c, b2c);
         apply_adam(&dwV, &mut self.wV, &mut self.m_wV, &mut self.v_wV, current_lr, b1c, b2c);
@@ -384,6 +448,8 @@ impl DQNRust {
         let tau = 0.005f32;
         polyak(&self.w1, &mut self.w1t, tau);
         polyak(&self.b1, &mut self.b1t, tau);
+        polyak(&self.w2, &mut self.w2t, tau);
+        polyak(&self.b2, &mut self.b2t, tau);
         polyak(&self.wA, &mut self.wAt, tau);
         polyak(&self.bA, &mut self.bAt, tau);
         polyak(&self.wV, &mut self.wVt, tau);
@@ -424,6 +490,8 @@ impl DQNRust {
         let mut arr: Array<Variant> = Array::new();
         arr.push(&PackedFloat32Array::from(self.w1.as_slice()));
         arr.push(&PackedFloat32Array::from(self.b1.as_slice()));
+        arr.push(&PackedFloat32Array::from(self.w2.as_slice()));
+        arr.push(&PackedFloat32Array::from(self.b2.as_slice()));
         arr.push(&PackedFloat32Array::from(self.wA.as_slice()));
         arr.push(&PackedFloat32Array::from(self.bA.as_slice()));
         arr.push(&PackedFloat32Array::from(self.wV.as_slice()));
@@ -433,13 +501,16 @@ impl DQNRust {
 
     #[func]
     fn set_weights_online(&mut self, weights: Array<Variant>) {
-        if weights.len() >= 6 {
-            if let Some(v) = weights.get(0) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.w1 = pf.to_vec(); } }
-            if let Some(v) = weights.get(1) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.b1 = pf.to_vec(); } }
-            if let Some(v) = weights.get(2) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.wA = pf.to_vec(); } }
-            if let Some(v) = weights.get(3) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.bA = pf.to_vec(); } }
-            if let Some(v) = weights.get(4) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.wV = pf.to_vec(); } }
-            if let Some(v) = weights.get(5) { if let Ok(bv) = v.try_to::<f64>() { self.bV = bv as f32; } }
+        if weights.len() >= 8 {
+            let mut idx = 0;
+            if let Some(v) = weights.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.w1 = pf.to_vec(); } } idx += 1;
+            if let Some(v) = weights.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.b1 = pf.to_vec(); } } idx += 1;
+            if let Some(v) = weights.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.w2 = pf.to_vec(); } } idx += 1;
+            if let Some(v) = weights.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.b2 = pf.to_vec(); } } idx += 1;
+            if let Some(v) = weights.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.wA = pf.to_vec(); } } idx += 1;
+            if let Some(v) = weights.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.bA = pf.to_vec(); } } idx += 1;
+            if let Some(v) = weights.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.wV = pf.to_vec(); } } idx += 1;
+            if let Some(v) = weights.get(idx) { if let Ok(bv) = v.try_to::<f64>() { self.bV = bv as f32; } }
         }
     }
 
@@ -450,6 +521,10 @@ impl DQNRust {
         arr.push(&PackedFloat32Array::from(self.v_w1.as_slice()));
         arr.push(&PackedFloat32Array::from(self.m_b1.as_slice()));
         arr.push(&PackedFloat32Array::from(self.v_b1.as_slice()));
+        arr.push(&PackedFloat32Array::from(self.m_w2.as_slice()));
+        arr.push(&PackedFloat32Array::from(self.v_w2.as_slice()));
+        arr.push(&PackedFloat32Array::from(self.m_b2.as_slice()));
+        arr.push(&PackedFloat32Array::from(self.v_b2.as_slice()));
         arr.push(&PackedFloat32Array::from(self.m_wA.as_slice()));
         arr.push(&PackedFloat32Array::from(self.v_wA.as_slice()));
         arr.push(&PackedFloat32Array::from(self.m_bA.as_slice()));
@@ -464,12 +539,16 @@ impl DQNRust {
 
     #[func]
     fn set_adam_state(&mut self, state: Array<Variant>) {
-        if state.len() >= 13 {
+        if state.len() >= 17 {
             let mut idx = 0;
             if let Some(v) = state.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.m_w1 = pf.to_vec(); } } idx += 1;
             if let Some(v) = state.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.v_w1 = pf.to_vec(); } } idx += 1;
             if let Some(v) = state.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.m_b1 = pf.to_vec(); } } idx += 1;
             if let Some(v) = state.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.v_b1 = pf.to_vec(); } } idx += 1;
+            if let Some(v) = state.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.m_w2 = pf.to_vec(); } } idx += 1;
+            if let Some(v) = state.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.v_w2 = pf.to_vec(); } } idx += 1;
+            if let Some(v) = state.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.m_b2 = pf.to_vec(); } } idx += 1;
+            if let Some(v) = state.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.v_b2 = pf.to_vec(); } } idx += 1;
             if let Some(v) = state.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.m_wA = pf.to_vec(); } } idx += 1;
             if let Some(v) = state.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.v_wA = pf.to_vec(); } } idx += 1;
             if let Some(v) = state.get(idx) { if let Ok(pf) = v.try_to::<PackedFloat32Array>() { self.m_bA = pf.to_vec(); } } idx += 1;
@@ -486,6 +565,8 @@ impl DQNRust {
     fn copy_to_target(&mut self) {
         self.w1t = self.w1.clone();
         self.b1t = self.b1.clone();
+        self.w2t = self.w2.clone();
+        self.b2t = self.b2.clone();
         self.wAt = self.wA.clone();
         self.bAt = self.bA.clone();
         self.wVt = self.wV.clone();
@@ -497,6 +578,8 @@ impl DQNRust {
         let t = tau as f32;
         polyak(&self.w1, &mut self.w1t, t);
         polyak(&self.b1, &mut self.b1t, t);
+        polyak(&self.w2, &mut self.w2t, t);
+        polyak(&self.b2, &mut self.b2t, t);
         polyak(&self.wA, &mut self.wAt, t);
         polyak(&self.bA, &mut self.bAt, t);
         polyak(&self.wV, &mut self.wVt, t);
@@ -505,7 +588,8 @@ impl DQNRust {
 
     #[func]
     fn _ready(&mut self) {
-        godot_print!("DQNRust agent ready");
+        godot_print!("DQNRust agent ready ({} -> {} -> {} -> {})",
+            self.state_dim, self.hidden1, self.hidden2, self.action_dim);
     }
 }
 

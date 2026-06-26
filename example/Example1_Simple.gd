@@ -2,11 +2,12 @@ extends Node3D
 
 const STATE_DIM = 12
 const ACTION_DIM = 7
-const HIDDEN = 256
+const HIDDEN1 = 512
+const HIDDEN2 = 256
 const MAX_EPISODE_STEPS = 2000
 const FRAMES_PER_STEP = 4
 const BATCH_SIZE = 64
-const REPLAY_CAPACITY = 50000
+const REPLAY_CAPACITY = 100000
 const N_STEPS = 3
 const GAMMA = 0.99
 const LR_INIT = 0.001
@@ -103,7 +104,7 @@ func _ready():
 			break
 
 	agent = DQNRust.new()
-	agent.init(STATE_DIM, ACTION_DIM, HIDDEN, REPLAY_CAPACITY, N_STEPS, GAMMA)
+	agent.init(STATE_DIM, ACTION_DIM, HIDDEN1, HIDDEN2, REPLAY_CAPACITY, N_STEPS, GAMMA)
 
 	_init_run_id()
 	var best_path = _find_best_run()
