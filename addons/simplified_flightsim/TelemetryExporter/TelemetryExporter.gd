@@ -19,7 +19,7 @@ func _ready():
 	await get_tree().process_frame
 	aircraft = get_node_or_null(AircraftNode)
 	if not aircraft:
-		printerr("TelemetryExporter: Aircraft node not found")
+		print("TelemetryExporter: Aircraft node not configured — skipping")
 		return
 	engine_module = aircraft.find_modules_by_type("engine").pop_front()
 	steering_module = aircraft.find_modules_by_type("steering").pop_front()
