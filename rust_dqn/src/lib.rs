@@ -22,20 +22,23 @@ unsafe impl ExtensionLibrary for DqnRustExtension {}
 struct DQNRust {
     base: Base<Node>,
 
-    state_dim: usize,
-    action_dim: usize,
-    hidden1: usize,
-    hidden2: usize,
+    // ── Architecture ──
+    state_dim: usize,   // input features (12 or 13)
+    action_dim: usize,  // output actions (7)
+    hidden1: usize,     // neurons in layer 1 (512)
+    hidden2: usize,     // neurons in layer 2 (256)
 
-    w1: Vec<f32>,
-    b1: Vec<f32>,
-    w2: Vec<f32>,
-    b2: Vec<f32>,
-    wA: Vec<f32>,
-    bA: Vec<f32>,
-    wV: Vec<f32>,
-    bV: f32,
+    // ── Online network weights & biases (actively trained) ──
+    w1: Vec<f32>,  // (h1 × state_dim)  input → hidden1
+    b1: Vec<f32>,  // (h1)               hidden1 bias
+    w2: Vec<f32>,  // (h2 × h1)         hidden1 → hidden2
+    b2: Vec<f32>,  // (h2)               hidden2 bias
+    wA: Vec<f32>,  // (action_dim × h2) hidden2 → advantage stream
+    bA: Vec<f32>,  // (action_dim)       advantage bias per action
+    wV: Vec<f32>,  // (h2)               hidden2 → value scalar
+    bV: f32,       // (1)                value bias
 
+    // ── Target network (Polyak soft-copy of online, τ=0.005) ──
     w1t: Vec<f32>,
     b1t: Vec<f32>,
     w2t: Vec<f32>,
@@ -45,32 +48,27 @@ struct DQNRust {
     wVt: Vec<f32>,
     bVt: f32,
 
-    m_w1: Vec<f32>,
-    v_w1: Vec<f32>,
-    m_b1: Vec<f32>,
-    v_b1: Vec<f32>,
-    m_w2: Vec<f32>,
-    v_w2: Vec<f32>,
-    m_b2: Vec<f32>,
-    v_b2: Vec<f32>,
-    m_wA: Vec<f32>,
-    v_wA: Vec<f32>,
-    m_bA: Vec<f32>,
-    v_bA: Vec<f32>,
-    m_wV: Vec<f32>,
-    v_wV: Vec<f32>,
-    m_bV: f32,
-    v_bV: f32,
-    adam_step: i64,
+    // ── Adam optimizer state (first & second moments per parameter) ──
+    m_w1: Vec<f32>,  v_w1: Vec<f32>,
+    m_b1: Vec<f32>,  v_b1: Vec<f32>,
+    m_w2: Vec<f32>,  v_w2: Vec<f32>,
+    m_b2: Vec<f32>,  v_b2: Vec<f32>,
+    m_wA: Vec<f32>,  v_wA: Vec<f32>,
+    m_bA: Vec<f32>,  v_bA: Vec<f32>,
+    m_wV: Vec<f32>,  v_wV: Vec<f32>,
+    m_bV: f32,       v_bV: f32,
+    adam_step: i64,  // global optimizer step counter
 
-    sumtree: SumTree,
-    max_priority: f32,
-    nstep_buffer: Vec<ReplayItem>,
-    n_steps: usize,
+    // ── Prioritized experience replay ──
+    sumtree: SumTree,          // sum-tree storing transitions with priorities
+    max_priority: f32,         // highest priority seen (for new insertions)
+    nstep_buffer: Vec<ReplayItem>,  // ring buffer for N-step returns
+    n_steps: usize,            // N-step bootstrap length
 
-    step_count: i64,
-    epsilon: f64,
-    gamma_pow: Vec<f32>,
+    // ── Training state ──
+    step_count: i64,   // total steps taken
+    epsilon: f64,      // ε-greedy exploration rate (decays over time)
+    gamma_pow: Vec<f32>,  // precomputed γⁿ for N-step discounting
 }
 
 #[godot_api]

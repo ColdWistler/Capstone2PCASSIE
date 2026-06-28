@@ -197,6 +197,8 @@ func set_dqn_data(action: int, state, q_values, reward: float, epsilon: float, e
 		row.append(str(val))
 	_csv_file.store_line(",".join(row))
 	_row_count += 1
+	if episode != _episode_count and episode % WeightSaveIntervalEpisodes == 0:
+		_save_weight_snapshot()
 	_episode_count = episode
 
 	if _row_count >= MaxCsvRows:
