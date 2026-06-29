@@ -725,7 +725,7 @@ func _physics_process(_delta):
 		episode_reward += compute_reward()
 		if csv_exporter and is_instance_valid(csv_exporter):
 			var empty_q = []
-			empty_q.resize(agent.action_dim)
+			empty_q.resize(agent.get_action_dim())
 			csv_exporter.set_dqn_data(-1, [], empty_q, 0.0, epsilon, episode_count, agent.get_step_count())
 		var done = is_done or episode_step >= MAX_EPISODE_STEPS
 		if done:

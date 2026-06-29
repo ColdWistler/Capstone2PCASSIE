@@ -457,6 +457,9 @@ impl DQNRust {
     }
 
     #[func]
+    fn get_action_dim(&self) -> i64 { self.action_dim as i64 }
+
+    #[func]
     fn get_epsilon(&self) -> f64 { self.epsilon }
 
     #[func]
