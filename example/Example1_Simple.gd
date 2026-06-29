@@ -2,14 +2,14 @@ extends Node3D
 
 const STATE_DIM = 12
 const ACTION_DIM = 7
-const HIDDEN = 256
+const HIDDEN1 = 512
+const HIDDEN2 = 256
 const MAX_EPISODE_STEPS = 2000
 const FRAMES_PER_STEP = 4
 const BATCH_SIZE = 64
-const REPLAY_CAPACITY = 50000
+const REPLAY_CAPACITY = 100000
 const N_STEPS = 3
 const GAMMA = 0.99
-var GAMMA_POW = [1.0, GAMMA, GAMMA * GAMMA, GAMMA * GAMMA * GAMMA]
 const LR_INIT = 0.001
 const LR_DECAY = 0.9995
 const LR_MIN = 0.0001
@@ -27,9 +27,8 @@ const PRIORITY_BETA_STEPS = 100000
 const SAVE_PATH = "user://dqn_weights.save"
 const META_PATH = "user://dqn_meta.save"
 const TRAIN_INTERVAL = 2
-const CHUNK_SIZE = 16
 const SAVE_INTERVAL = 50
-const SAVE_VERSION = 4
+const SAVE_VERSION = 5
 const TEST_EPISODES = 10
 const TEST_REPORT_PATH = "user://test_report.txt"
 const TEST_REPORT_HTML_PATH = "user://test_report.html"
@@ -60,64 +59,15 @@ var step_count = 0
 var episode_count = 0
 var best_reward = -1e9
 
-# Prioritized replay
-var sumtree: SumTree
-var max_priority = 1.0
-
-# Dueling network weights
-var w1 = PackedFloat32Array()
-var b1 = PackedFloat32Array()
-var wA = PackedFloat32Array()
-var bA = PackedFloat32Array()
-var wV = PackedFloat32Array()
-var bV = 0.0
-# Target network
-var w1t = PackedFloat32Array()
-var b1t = PackedFloat32Array()
-var wAt = PackedFloat32Array()
-var bAt = PackedFloat32Array()
-var wVt = PackedFloat32Array()
-var bVt = 0.0
+var agent: DQNRust
 
 var epsilon = EPSILON_START
-
-# Adam optimizer state
-var m_w1 = PackedFloat32Array()
-var v_w1 = PackedFloat32Array()
-var m_b1 = PackedFloat32Array()
-var v_b1 = PackedFloat32Array()
-var m_wA = PackedFloat32Array()
-var v_wA = PackedFloat32Array()
-var m_bA = PackedFloat32Array()
-var v_bA = PackedFloat32Array()
-var m_wV = PackedFloat32Array()
-var v_wV = PackedFloat32Array()
-var m_bV = 0.0
-var v_bV = 0.0
-var adam_step = 0
-
-# N-step return buffer
-var nstep_buffer = []
 var prev_action = -1
 var train_counter = 0
 
-# Multi-run tracking
 var run_id = 0
 var _last_saved_best = -1e9
 
-# Chunked training state
-var chunk_batch = []
-var chunk_indices = []
-var chunk_is_weights = PackedFloat32Array()
-var chunk_ptr = -1
-var chunk_dw1 = PackedFloat32Array()
-var chunk_db1 = PackedFloat32Array()
-var chunk_dwA = PackedFloat32Array()
-var chunk_dbA = PackedFloat32Array()
-var chunk_dwV = PackedFloat32Array()
-var chunk_dbV = 0.0
-
-# Test mode
 var test_mode = false
 var test_results = []
 var test_ep_alt_sum = 0.0
@@ -125,68 +75,8 @@ var test_ep_stall_acc = 0
 
 var is_landing_mode = false
 
-class SumTree:
-	var tree: PackedFloat32Array
-	var data: Array
-	var capacity: int
-	var size: int = 0
-	var write_idx: int = 0
-
-	func _init(cap: int):
-		capacity = 1
-		while capacity < cap:
-			capacity <<= 1
-		tree.resize(capacity * 2)
-		data.resize(capacity)
-
-	func total() -> float:
-		return tree[1]
-
-	func add(item, priority: float):
-		var idx = capacity + write_idx
-		data[write_idx] = item
-		_tree_set(idx, priority)
-		write_idx = (write_idx + 1) % capacity
-		if size < capacity:
-			size += 1
-
-	func _tree_set(idx: int, priority: float):
-		tree[idx] = priority
-		idx >>= 1
-		while idx:
-			tree[idx] = tree[idx * 2] + tree[idx * 2 + 1]
-			idx >>= 1
-
-	func _retrieve(idx: int, s: float) -> int:
-		while idx < capacity:
-			var left = idx * 2
-			if tree[left] >= s:
-				idx = left
-			else:
-				s -= tree[left]
-				idx = left + 1
-		return idx
-
-	func sample(n: int) -> Array:
-		var batch = []
-		var indices = []
-		var priorities = []
-		var total_p = total()
-		if total_p <= 0.0:
-			return [[], [], []]
-		var seg = total_p / n
-		for i in range(n):
-			var s = seg * (i + randf())
-			var idx = _retrieve(1, s)
-			var data_idx = idx - capacity
-			indices.append(data_idx)
-			batch.append(data[data_idx])
-			priorities.append(tree[idx])
-		return [batch, indices, priorities]
-
-	func set_priority(idx: int, priority: float):
-		if idx < capacity:
-			_tree_set(capacity + idx, priority)
+# CSV data logger (optional — logs telemetry + DQN data to telemetry/csv/)
+var csv_exporter = null
 
 
 func _ready():
@@ -216,8 +106,9 @@ func _ready():
 			print("TEST MODE — %d episodes, greedy actions, no training" % TEST_EPISODES)
 			break
 
-	_init_network()
-	sumtree = SumTree.new(REPLAY_CAPACITY)
+	agent = DQNRust.new()
+	agent.init(STATE_DIM, ACTION_DIM, HIDDEN1, HIDDEN2, REPLAY_CAPACITY, N_STEPS, GAMMA)
+
 	_init_run_id()
 	var best_path = _find_best_run()
 	var loaded = false
@@ -233,60 +124,23 @@ func _ready():
 			print("No saved weights found, starting fresh")
 	if test_mode:
 		takeoff_phase = false
+	# Set up CSV exporter (logs telemetry + DQN data to telemetry/csv/)
+	var CsvExporterScript = load("res://addons/simplified_flightsim/TelemetryExporter/TelemetryCsvExporter.gd")
+	if CsvExporterScript:
+		csv_exporter = CsvExporterScript.new()
+		csv_exporter.aircraft_ref = aircraft
+		csv_exporter.dqn_agent = agent
+		csv_exporter.DQNStateDim = STATE_DIM
+		csv_exporter.DQNActionDim = ACTION_DIM
+		csv_exporter.ExportIntervalFrames = 3
+		csv_exporter.WeightSaveIntervalEpisodes = 10
+		add_child(csv_exporter)
+		print("CSV exporter initialized")
 	initialize_aircraft()
 	if takeoff_phase:
 		print("Starting takeoff from runway...")
 	else:
 		print("Spawning at altitude...")
-
-
-func _init_network():
-	var seed_val = randi()
-	var rng = RandomNumberGenerator.new()
-	rng.seed = seed_val
-	w1.resize(HIDDEN * STATE_DIM)
-	b1.resize(HIDDEN)
-	wA.resize(ACTION_DIM * HIDDEN)
-	bA.resize(ACTION_DIM)
-	wV.resize(HIDDEN)
-	bV = 0.0
-	for i in range(w1.size()):
-		w1[i] = rng.randfn(0.0, 0.1)
-	for i in range(b1.size()):
-		b1[i] = 0.0
-	for i in range(wA.size()):
-		wA[i] = rng.randfn(0.0, 0.1)
-	for i in range(bA.size()):
-		bA[i] = 0.0
-	for i in range(wV.size()):
-		wV[i] = rng.randfn(0.0, 0.1)
-	_init_adam()
-	_copy_to_target()
-
-
-func _init_adam():
-	m_w1.resize(HIDDEN * STATE_DIM)
-	v_w1.resize(HIDDEN * STATE_DIM)
-	m_b1.resize(HIDDEN)
-	v_b1.resize(HIDDEN)
-	m_wA.resize(ACTION_DIM * HIDDEN)
-	v_wA.resize(ACTION_DIM * HIDDEN)
-	m_bA.resize(ACTION_DIM)
-	v_bA.resize(ACTION_DIM)
-	m_wV.resize(HIDDEN)
-	v_wV.resize(HIDDEN)
-	m_bV = 0.0
-	v_bV = 0.0
-	adam_step = 0
-
-
-func _copy_to_target():
-	w1t = w1.duplicate()
-	b1t = b1.duplicate()
-	wAt = wA.duplicate()
-	bAt = bA.duplicate()
-	wVt = wV.duplicate()
-	bVt = bV
 
 
 func save_weights():
@@ -303,29 +157,12 @@ func _write_weights_to(path: String):
 		push_error("Failed to open save file for writing")
 		return
 	file.store_32(SAVE_VERSION)
-	file.store_var(w1)
-	file.store_var(b1)
-	file.store_var(wA)
-	file.store_var(bA)
-	file.store_var(wV)
-	file.store_var(bV)
+	file.store_var(agent.get_weights_online())
 	file.store_var(epsilon)
 	file.store_32(episode_count)
-	file.store_32(step_count)
+	file.store_32(agent.get_step_count())
 	file.store_var(best_reward)
-	file.store_var(m_w1)
-	file.store_var(v_w1)
-	file.store_var(m_b1)
-	file.store_var(v_b1)
-	file.store_var(m_wA)
-	file.store_var(v_wA)
-	file.store_var(m_bA)
-	file.store_var(v_bA)
-	file.store_var(m_wV)
-	file.store_var(v_wV)
-	file.store_var(m_bV)
-	file.store_var(v_bV)
-	file.store_32(adam_step)
+	file.store_var(agent.get_adam_state())
 	file.close()
 
 
@@ -336,35 +173,18 @@ func load_weights(path := SAVE_PATH) -> bool:
 	if not file:
 		return false
 	var ver = file.get_32()
-	if ver < 4:
+	if ver < 5:
 		file.close()
 		return false
-	w1 = file.get_var()
-	b1 = file.get_var()
-	wA = file.get_var()
-	bA = file.get_var()
-	wV = file.get_var()
-	bV = file.get_var()
+	agent.set_weights_online(file.get_var())
 	epsilon = file.get_var()
 	episode_count = file.get_32()
-	step_count = file.get_32()
+	agent.set_step_count(file.get_32())
 	best_reward = file.get_var()
-	m_w1 = file.get_var()
-	v_w1 = file.get_var()
-	m_b1 = file.get_var()
-	v_b1 = file.get_var()
-	m_wA = file.get_var()
-	v_wA = file.get_var()
-	m_bA = file.get_var()
-	v_bA = file.get_var()
-	m_wV = file.get_var()
-	v_wV = file.get_var()
-	m_bV = file.get_var()
-	v_bV = file.get_var()
-	adam_step = file.get_32()
+	agent.set_adam_state(file.get_var())
 	file.close()
-	_copy_to_target()
-	print("Weights loaded (episode %d, step %d, best_reward %.1f)" % [episode_count, step_count, best_reward])
+	agent.copy_to_target()
+	print("Weights loaded (episode %d, step %d, best_reward %.1f)" % [episode_count, agent.get_step_count(), best_reward])
 	_last_saved_best = best_reward
 	return true
 
@@ -397,12 +217,7 @@ func _find_best_run() -> String:
 			var file = FileAccess.open(full, FileAccess.READ)
 			if file:
 				var ver = file.get_32()
-				if ver >= 4:
-					file.get_var()
-					file.get_var()
-					file.get_var()
-					file.get_var()
-					file.get_var()
+				if ver >= 5:
 					file.get_var()
 					file.get_var()
 					file.get_32()
@@ -528,11 +343,8 @@ func _generate_html_report(avg_r: float, min_r: float, max_r: float, avg_steps: 
 		svg_bars += "<rect x='%.1f' y='%.1f' width='%.1f' height='%.1f' fill='%s'/>\n" % [x, y, bar_w, val_h, color]
 
 	var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' style='background:#fff;border-radius:8px'>\n" % [svg_w, svg_h]
-	# Y axis line
 	svg += "<line x1='%.1f' y1='%d' x2='%.1f' y2='%d' stroke='#ccc' stroke-width='1'/>\n" % [margin_l, margin_t, margin_l, margin_t + plot_h]
-	# X axis line
 	svg += "<line x1='%.1f' y1='%d' x2='%d' y2='%d' stroke='#ccc' stroke-width='1'/>\n" % [margin_l, margin_t + plot_h, svg_w - margin_r, margin_t + plot_h]
-	# Y labels
 	var y_ticks = 5
 	for t in range(y_ticks + 1):
 		var frac = float(t) / y_ticks
@@ -541,15 +353,12 @@ func _generate_html_report(avg_r: float, min_r: float, max_r: float, avg_steps: 
 		svg += "<text x='%.1f' y='%.1f' text-anchor='end' fill='#666' font-size='12'>%.0f</text>\n" % [margin_l - 8, y + 4, val]
 		if t > 0 and t < y_ticks:
 			svg += "<line x1='%.1f' y1='%.1f' x2='%d' y2='%.1f' stroke='#eee' stroke-width='1'/>\n" % [margin_l, y, svg_w - margin_r, y]
-	# X labels
 	for i in range(ep_count):
 		var x = margin_l + (float(i) + 0.5) * plot_w / ep_count
 		svg += "<text x='%.1f' y='%.1f' text-anchor='middle' fill='#666' font-size='11'>%d</text>\n" % [x, margin_t + plot_h + 18, i + 1]
 	svg += "<text x='%d' y='%d' text-anchor='middle' fill='#666' font-size='12'>Episode</text>\n" % [svg_w / 2, margin_t + plot_h + 38]
 	svg += "<text x='12' y='%d' text-anchor='middle' fill='#666' font-size='12' transform='rotate(-90,12,%d)'>Reward</text>\n" % [margin_t + plot_h / 2, margin_t + plot_h / 2]
-	# Bars
 	svg += svg_bars
-	# Legend
 	var lx = svg_w - 200
 	var ly = margin_t + 5
 	svg += "<rect x='%d' y='%d' width='12' height='12' fill='#22c55e'/><text x='%d' y='%d' fill='#666' font-size='12'>Landed</text>\n" % [lx, ly, lx + 16, ly + 11]
@@ -586,7 +395,6 @@ func _generate_html_report(avg_r: float, min_r: float, max_r: float, avg_steps: 
 	html += "<h1>DQN Flight Sim — Test Report</h1>\n"
 	html += "<p class='subtitle'>Model: dqn_run_%d.save &middot; %d episodes</p>\n" % [run_id, ep_count]
 
-	# Summary section
 	html += "<div class='section'><h2>Summary</h2>\n<table>\n"
 	html += "<tr><th>Metric</th><th>Value</th></tr>\n"
 	html += "<tr><td>Avg Reward</td><td>%.1f (min %.1f, max %.1f)</td></tr>\n" % [avg_r, min_r, max_r]
@@ -597,11 +405,9 @@ func _generate_html_report(avg_r: float, min_r: float, max_r: float, avg_steps: 
 	html += "<tr><td>Crashes</td><td>%d / %d</td></tr>\n" % [crashes, ep_count]
 	html += "</table>\n</div>\n"
 
-	# Chart section
 	html += "<div class='section'><h2>Per-Episode Rewards</h2>\n<div class='chart'>\n"
 	html += svg + "\n</div>\n</div>\n"
 
-	# Per-episode table
 	html += "<div class='section'><h2>Episode Details</h2>\n<table>\n"
 	html += "<tr><th>#</th><th>Reward</th><th>Steps</th><th>Status</th><th>Avg Alt</th><th>Stalls</th></tr>\n"
 	html += ep_rows
@@ -661,8 +467,6 @@ func reset_episode():
 	prev_action = -1
 	is_landing_mode = false
 	train_counter = 0
-	chunk_ptr = -1
-	nstep_buffer.clear()
 	if test_mode:
 		test_ep_alt_sum = 0.0
 		test_ep_stall_acc = 0
@@ -686,6 +490,7 @@ func _on_Aircraft_parked():
 		return
 	has_landed_safely = true
 	is_done = true
+
 
 func _on_Aircraft_moved():
 	pass
@@ -806,262 +611,6 @@ func apply_action(a: int):
 	steering_module.set_z(roll_level)
 
 
-func forward(x: PackedFloat32Array, w1p: PackedFloat32Array, b1p: PackedFloat32Array, wAp: PackedFloat32Array, bAp: PackedFloat32Array, wVp: PackedFloat32Array, bVp: float) -> Array:
-	var h = PackedFloat32Array()
-	h.resize(HIDDEN)
-	for hi in range(HIDDEN):
-		var s = b1p[hi]
-		for j in range(STATE_DIM):
-			s += w1p[hi * STATE_DIM + j] * x[j]
-		h[hi] = max(s, 0.0)
-
-	var V = bVp
-	for hi in range(HIDDEN):
-		V += wVp[hi] * h[hi]
-
-	var A = PackedFloat32Array()
-	A.resize(ACTION_DIM)
-	for ai in range(ACTION_DIM):
-		var s = bAp[ai]
-		for hi in range(HIDDEN):
-			s += wAp[ai * HIDDEN + hi] * h[hi]
-		A[ai] = s
-
-	var meanA = 0.0
-	for ai in range(ACTION_DIM):
-		meanA += A[ai]
-	meanA /= ACTION_DIM
-
-	var Q = PackedFloat32Array()
-	Q.resize(ACTION_DIM)
-	for ai in range(ACTION_DIM):
-		Q[ai] = V + A[ai] - meanA
-
-	return [h, V, A, Q]
-
-
-func predict_q(state: Array) -> PackedFloat32Array:
-	var x = PackedFloat32Array(state)
-	var result = forward(x, w1, b1, wA, bA, wV, bV)
-	return result[3]
-
-
-func select_action(state: Array) -> int:
-	if randf() < epsilon:
-		return randi() % ACTION_DIM
-	var q = predict_q(state)
-	var best = 0
-	for i in range(1, q.size()):
-		if q[i] > q[best]:
-			best = i
-	return best
-
-
-func push_replay(state: Array, action: int, reward: float, next_state: Array, done: bool):
-	nstep_buffer.append([state, action, reward, next_state, done])
-	if nstep_buffer.size() > N_STEPS:
-		nstep_buffer.pop_front()
-
-	var push_ready = done or nstep_buffer.size() == N_STEPS
-	if not push_ready:
-		return
-
-	var G = 0.0
-	var final_idx = nstep_buffer.size() - 1
-	for i in range(nstep_buffer.size()):
-		G += pow(GAMMA, i) * nstep_buffer[i][2]
-		if nstep_buffer[i][4]:
-			final_idx = i
-			break
-
-	var first = nstep_buffer[0]
-	var last = nstep_buffer[final_idx]
-	var n_actual = final_idx + 1
-	var p = pow(max_priority, PRIORITY_ALPHA)
-	sumtree.add([first[0], first[1], G, last[3], last[4], n_actual], p)
-
-	if done:
-		nstep_buffer.clear()
-
-
-func sample_batch(batch_size: int) -> Array:
-	var result = sumtree.sample(batch_size)
-	var batch = result[0]
-	var indices = result[1]
-	var priorities = result[2]
-
-	if batch.is_empty():
-		return [[], [], []]
-
-	var total_p = sumtree.total()
-	var n = sumtree.size
-	var beta = min(1.0, PRIORITY_BETA_START + step_count * (1.0 - PRIORITY_BETA_START) / float(PRIORITY_BETA_STEPS))
-	var weights = PackedFloat32Array()
-	weights.resize(batch_size)
-	for i in range(batch_size):
-		var prob = priorities[i] / total_p
-		weights[i] = pow(1.0 / (n * prob + 1e-8), beta)
-
-	return [batch, indices, weights]
-
-
-func train_step():
-	if sumtree.size < BATCH_SIZE:
-		return
-
-	if chunk_ptr < 0:
-		var batch_result = sample_batch(BATCH_SIZE)
-		chunk_batch = batch_result[0]
-		chunk_indices = batch_result[1]
-		chunk_is_weights = batch_result[2]
-
-		chunk_dw1.resize(HIDDEN * STATE_DIM)
-		chunk_db1.resize(HIDDEN)
-		chunk_dwA.resize(ACTION_DIM * HIDDEN)
-		chunk_dbA.resize(ACTION_DIM)
-		chunk_dwV.resize(HIDDEN)
-		chunk_dw1.fill(0.0)
-		chunk_db1.fill(0.0)
-		chunk_dwA.fill(0.0)
-		chunk_dbA.fill(0.0)
-		chunk_dwV.fill(0.0)
-		chunk_dbV = 0.0
-
-		chunk_ptr = 0
-
-	var chunk_end = mini(chunk_ptr + CHUNK_SIZE, BATCH_SIZE)
-
-	for i in range(chunk_ptr, chunk_end):
-		var b = chunk_batch[i]
-		var s: Array = b[0]
-		var a: int = b[1]
-		var r: float = b[2]
-		var ns: Array = b[3]
-		var d: bool = b[4]
-		var n_actual: int = b[5] if b.size() > 5 else 1
-
-		var x_s = PackedFloat32Array(s)
-		var x_ns = PackedFloat32Array(ns)
-
-		var fwd = forward(x_s, w1, b1, wA, bA, wV, bV)
-		var h = fwd[0]
-		var V_s = fwd[1]
-		var A_s = fwd[2]
-		var Q_s = fwd[3]
-
-		var fwd_on = forward(x_ns, w1, b1, wA, bA, wV, bV)
-		var Q_on = fwd_on[3]
-		var best_a = 0
-		for j in range(1, ACTION_DIM):
-			if Q_on[j] > Q_on[best_a]:
-				best_a = j
-
-		var fwd_tg = forward(x_ns, w1t, b1t, wAt, bAt, wVt, bVt)
-		var Q_tg = fwd_tg[3]
-		var target = r + GAMMA_POW[n_actual] * Q_tg[best_a] * (0.0 if d else 1.0)
-
-		var td_err = abs(Q_s[a] - target) + 1e-6
-		var p = pow(td_err, PRIORITY_ALPHA)
-		sumtree.set_priority(chunk_indices[i], p)
-		if td_err > max_priority:
-			max_priority = td_err
-
-		var dQ = 2.0 * (Q_s[a] - target) / float(BATCH_SIZE)
-		dQ *= chunk_is_weights[i]
-
-		var dV = dQ
-		var dA = PackedFloat32Array()
-		dA.resize(ACTION_DIM)
-		var invN = 1.0 / ACTION_DIM
-		for ai in range(ACTION_DIM):
-			dA[ai] = -dQ * invN
-		dA[a] += dQ
-
-		for hi in range(HIDDEN):
-			chunk_dwV[hi] += dV * h[hi]
-		chunk_dbV += dV
-
-		for ai in range(ACTION_DIM):
-			var dai = dA[ai]
-			for hi in range(HIDDEN):
-				chunk_dwA[ai * HIDDEN + hi] += dai * h[hi]
-			chunk_dbA[ai] += dai
-
-		var grad_h = PackedFloat32Array()
-		grad_h.resize(HIDDEN)
-		for hi in range(HIDDEN):
-			var ssum = dV * wV[hi]
-			for ai in range(ACTION_DIM):
-				ssum += dA[ai] * wA[ai * HIDDEN + hi]
-			grad_h[hi] = ssum if h[hi] > 0 else 0.0
-
-		for hi in range(HIDDEN):
-			var ghi = grad_h[hi]
-			for j in range(STATE_DIM):
-				chunk_dw1[hi * STATE_DIM + j] += ghi * s[j]
-			chunk_db1[hi] += ghi
-
-	chunk_ptr = chunk_end
-
-	if chunk_ptr >= BATCH_SIZE:
-		if GRAD_CLIP > 0:
-			for i in range(chunk_dw1.size()):
-				chunk_dw1[i] = clamp(chunk_dw1[i], -GRAD_CLIP, GRAD_CLIP)
-			for i in range(chunk_db1.size()):
-				chunk_db1[i] = clamp(chunk_db1[i], -GRAD_CLIP, GRAD_CLIP)
-			for i in range(chunk_dwA.size()):
-				chunk_dwA[i] = clamp(chunk_dwA[i], -GRAD_CLIP, GRAD_CLIP)
-			for i in range(chunk_dbA.size()):
-				chunk_dbA[i] = clamp(chunk_dbA[i], -GRAD_CLIP, GRAD_CLIP)
-			for i in range(chunk_dwV.size()):
-				chunk_dwV[i] = clamp(chunk_dwV[i], -GRAD_CLIP, GRAD_CLIP)
-			chunk_dbV = clamp(chunk_dbV, -GRAD_CLIP, GRAD_CLIP)
-
-		step_count += 1
-		adam_step += 1
-		var current_lr = max(LR_MIN, LR_INIT * pow(LR_DECAY, step_count))
-		var b1_corr = 1.0 - pow(ADAM_BETA1, adam_step)
-		var b2_corr = 1.0 - pow(ADAM_BETA2, adam_step)
-
-		_apply_adam(chunk_dw1, w1, m_w1, v_w1, current_lr, b1_corr, b2_corr)
-		_apply_adam(chunk_db1, b1, m_b1, v_b1, current_lr, b1_corr, b2_corr)
-		_apply_adam(chunk_dwA, wA, m_wA, v_wA, current_lr, b1_corr, b2_corr)
-		_apply_adam(chunk_dbA, bA, m_bA, v_bA, current_lr, b1_corr, b2_corr)
-		_apply_adam(chunk_dwV, wV, m_wV, v_wV, current_lr, b1_corr, b2_corr)
-		m_bV = ADAM_BETA1 * m_bV + (1.0 - ADAM_BETA1) * chunk_dbV
-		v_bV = ADAM_BETA2 * v_bV + (1.0 - ADAM_BETA2) * chunk_dbV * chunk_dbV
-		var mbV_hat = m_bV / b1_corr
-		var vbV_hat = v_bV / b2_corr
-		bV -= current_lr * mbV_hat / (sqrt(vbV_hat) + ADAM_EPS)
-
-		var tau = TAU
-		_polyak(w1, w1t, tau)
-		_polyak(b1, b1t, tau)
-		_polyak(wA, wAt, tau)
-		_polyak(bA, bAt, tau)
-		_polyak(wV, wVt, tau)
-		bVt = tau * bV + (1.0 - tau) * bVt
-
-		epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
-
-		chunk_ptr = -1
-
-
-func _apply_adam(dw: PackedFloat32Array, w: PackedFloat32Array, m: PackedFloat32Array, v: PackedFloat32Array, lr: float, b1c: float, b2c: float):
-	for i in range(w.size()):
-		var g = dw[i]
-		m[i] = ADAM_BETA1 * m[i] + (1.0 - ADAM_BETA1) * g
-		v[i] = ADAM_BETA2 * v[i] + (1.0 - ADAM_BETA2) * g * g
-		var m_hat = m[i] / b1c
-		var v_hat = v[i] / b2c
-		w[i] -= lr * m_hat / (sqrt(v_hat) + ADAM_EPS)
-
-
-func _polyak(src: PackedFloat32Array, dst: PackedFloat32Array, tau: float):
-	for i in range(src.size()):
-		dst[i] = tau * src[i] + (1.0 - tau) * dst[i]
-
-
 func do_takeoff_step():
 	engine_module.engine_set_power(1.0)
 	var speed = aircraft.forward_air_speed
@@ -1174,13 +723,23 @@ func _physics_process(_delta):
 		_do_landing()
 		episode_step += 1
 		episode_reward += compute_reward()
+		if csv_exporter and is_instance_valid(csv_exporter):
+			var empty_q = []
+			empty_q.resize(agent.get_action_dim())
+			csv_exporter.set_dqn_data(-1, [], empty_q, 0.0, epsilon, episode_count, agent.get_step_count())
 		var done = is_done or episode_step >= MAX_EPISODE_STEPS
 		if done:
 			_on_episode_end()
 			reset_episode()
 	else:
 		var state = get_state()
-		var action = select_action(state)
+
+		if test_mode:
+			agent.set_epsilon(0.0)
+		else:
+			agent.set_epsilon(epsilon)
+
+		var action = agent.select_action(PackedFloat32Array(state))
 		apply_action(action)
 
 		if test_mode:
@@ -1192,19 +751,22 @@ func _physics_process(_delta):
 		var reward = compute_reward()
 		if prev_action >= 0 and action != prev_action:
 			reward -= 0.02
+		if csv_exporter and is_instance_valid(csv_exporter):
+			var q_values = agent.predict_q(PackedFloat32Array(state))
+			csv_exporter.set_dqn_data(action, state, q_values, reward, epsilon, episode_count, agent.get_step_count())
 		prev_action = action
 		episode_step += 1
 		episode_reward += reward
 		var done = is_done or episode_step >= MAX_EPISODE_STEPS
 
-		if test_mode:
-			epsilon = 0.0
-		else:
-			push_replay(state, action, reward, next_state, done)
+		if not test_mode:
+			agent.push_replay(PackedFloat32Array(state), action, reward, PackedFloat32Array(next_state), done)
 			train_counter += 1
-			if train_counter >= TRAIN_INTERVAL:
+			if train_counter >= TRAIN_INTERVAL and agent.get_replay_size() >= BATCH_SIZE:
 				train_counter = 0
-				train_step()
+				var current_lr = max(LR_MIN, LR_INIT * pow(LR_DECAY, agent.get_step_count()))
+				agent.train(BATCH_SIZE, GAMMA, GRAD_CLIP, current_lr)
+				epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
 
 		if done:
 			_on_episode_end()

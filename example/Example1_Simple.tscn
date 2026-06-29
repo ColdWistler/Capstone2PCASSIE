@@ -609,7 +609,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.24536, 0.462433)
 shape = SubResource("24")
 
 [node name="TelemetryExporter" parent="." instance=ExtResource("29")]
-AircraftNode = NodePath("Aircraft")
+AircraftNode = NodePath("../Aircraft")
 
 [node name="Interface" type="Control" parent="."]
 layout_mode = 3
