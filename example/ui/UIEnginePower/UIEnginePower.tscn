@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://bu2hixfhu8ndm"]
+
+[ext_resource type="Script" uid="uid://brbff6cvpdalc" path="res://example/ui/UIEnginePower/UIEnginePower.gd" id="2"]
+[ext_resource type="Texture2D" uid="uid://wydtpmcwimad" path="res://example/UII/engine-removebg-preview.png" id="2_gk85t"]
+
+[node name="UIEnginePower" type="Control" unique_id=2078856911]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 64.0
+offset_bottom = 128.0
+script = ExtResource("2")
+
+[node name="EngineRemovebgPreview" type="TextureRect" parent="." unique_id=464128]
+layout_mode = 0
+offset_left = -71.00001
+offset_top = -34.0
+offset_right = 255.0
+offset_bottom = 293.0
+scale = Vector2(0.5644172, 0.54587156)
+texture = ExtResource("2_gk85t")
+metadata/_edit_lock_ = true

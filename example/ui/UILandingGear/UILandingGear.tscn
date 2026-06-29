@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://b8s77ar81hq22"]
+
+[ext_resource type="Texture2D" uid="uid://cwdnifwi014p0" path="res://example/UII/landing_gear-removebg-preview.png" id="2_gkrqv"]
+[ext_resource type="Script" uid="uid://ch1yq82k3ww1f" path="res://example/ui/UILandingGear/UILandingGear.gd" id="6"]
+
+[node name="UILandingGear" type="Control" unique_id=1098946664]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 110.0
+offset_bottom = 128.0
+script = ExtResource("6")
+
+[node name="LandingGearRemovebgPreview" type="TextureRect" parent="." unique_id=1031746957]
+layout_mode = 0
+offset_left = 38.0
+offset_top = -25.0
+offset_right = 115.0
+offset_bottom = 139.0
+texture = ExtResource("2_gkrqv")
+expand_mode = 1
+metadata/_edit_lock_ = true

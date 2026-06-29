@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://cgb7rkgiyj7ts"]
+
+[ext_resource type="Script" uid="uid://dgx0wc4sjw7d4" path="res://example/ui/UIGForce/UIGForce.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://b3suq0wkn21dy" path="res://example/UII/FlapsControlWidget-removebg-preview.png" id="2_as83j"]
+
+[node name="UIGForce" type="Control" unique_id=1146615428]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 150.0
+offset_bottom = 195.0
+script = ExtResource("1")
+
+[node name="FlapsControlWidgetRemovebgPreview" type="TextureRect" parent="." unique_id=26164090]
+layout_mode = 0
+offset_left = 12.0
+offset_top = -4.0
+offset_right = 214.0
+offset_bottom = 306.0
+scale = Vector2(0.6386139, 0.60967743)
+texture = ExtResource("2_as83j")
+metadata/_edit_lock_ = true

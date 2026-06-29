@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://dsel16gi76dnm"]
+
+[ext_resource type="Texture2D" uid="uid://dcp220g1o37vk" path="res://example/UII/screen-removebg-preview.png" id="2_wmt4m"]
+[ext_resource type="Script" uid="uid://pxvraowb2y5w" path="res://example/ui/UIEnergyContainer/UIFuelLevel.gd" id="3"]
+
+[node name="UIFuelLevel" type="Control" unique_id=486742336]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 64.0
+offset_bottom = 128.0
+script = ExtResource("3")
+
+[node name="ScreenRemovebgPreview" type="TextureRect" parent="." unique_id=1463247528]
+layout_mode = 0
+offset_left = -22.999998
+offset_top = -21.000002
+offset_right = 449.973
+offset_bottom = 400.31976
+scale = Vector2(0.29599997, 0.394)
+texture = ExtResource("2_wmt4m")
+expand_mode = 1
+metadata/_edit_lock_ = true

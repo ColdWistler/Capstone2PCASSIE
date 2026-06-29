@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://dhg4sb4ifrvh8"]
+
+[ext_resource type="Script" uid="uid://cb1w1id0db652" path="res://example/ui/UIAttitude/UIAttitude.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://bah01h1fc66kf" path="res://example/UII/speed-removebg-preview (1).png" id="2_vb4xj"]
+
+[node name="UIAttitude" type="Control" unique_id=655300859]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 216.0
+offset_bottom = 128.0
+script = ExtResource("1")
+
+[node name="SpeedRemovebgPreview(1)" type="TextureRect" parent="." unique_id=2099232380]
+layout_mode = 0
+offset_left = 111.0
+offset_top = 10.0
+offset_right = 816.0
+offset_bottom = 364.0
+scale = Vector2(0.32553193, 0.23163842)
+texture = ExtResource("2_vb4xj")
+metadata/_edit_lock_ = true
