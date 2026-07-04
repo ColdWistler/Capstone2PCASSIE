@@ -198,12 +198,12 @@ func _find_best_run() -> String:
 			var full = "user://" + fn
 			var file = FileAccess.open(full, FileAccess.READ)
 			if file:
-		var ver = file.get_32()
-			if ver >= 5:
-				file.get_var()
-				file.get_var()
-				file.get_32()
-				file.get_32()
+				var ver = file.get_32()
+				if ver >= 5:
+					file.get_var()
+					file.get_var()
+					file.get_32()
+					file.get_32()
 					var r = file.get_var()
 					if r > best_r:
 						best_r = r
