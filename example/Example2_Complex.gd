@@ -768,8 +768,8 @@ func _physics_process(delta):
 			var to_home = HOME_POS - aircraft.global_transform.origin
 			to_home.y = 0.0
 			var cur_dist = to_home.length()
-			var delta = _prev_dist_to_home - cur_dist
-			reward += clamp(delta * 0.05, -0.5, 0.5)
+			var d_dist = _prev_dist_to_home - cur_dist
+			reward += clamp(d_dist * 0.05, -0.5, 0.5)
 			_prev_dist_to_home = cur_dist
 		if csv_exporter and is_instance_valid(csv_exporter):
 			var q_values = agent.predict_q(PackedFloat32Array(state))
