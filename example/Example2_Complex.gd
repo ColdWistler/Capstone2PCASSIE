@@ -74,6 +74,7 @@ var test_ep_stall_acc = 0
 var csv_exporter = null
 var _heading_error = 0.0
 var _dist_norm = 0.0
+var _prev_dist_to_home = 0.0
 
 var is_landing_mode = false
 
@@ -325,6 +326,12 @@ func initialize_aircraft():
 	episode_step = 0
 	episode_reward = 0.0
 	is_done = false
+	if is_instance_valid(aircraft):
+		var to_home = HOME_POS - aircraft.global_transform.origin
+		to_home.y = 0.0
+		_prev_dist_to_home = to_home.length()
+	else:
+		_prev_dist_to_home = 0.0
 
 	for eng in engine_modules:
 		if is_instance_valid(eng):
@@ -694,7 +701,7 @@ func _physics_process(delta):
 			var to_home = HOME_POS - aircraft.global_transform.origin
 			to_home.y = 0.0
 			var dist_to_home = to_home.length()
-			var dist_bonus = max(0.0, 1.0 - dist_to_home / 1000.0) * 500.0
+			var dist_bonus = max(0.0, 1.0 - dist_to_home / 1000.0) * 200.0
 			episode_reward += dist_bonus
 		_on_episode_end()
 		reset_episode()
@@ -732,7 +739,7 @@ func _physics_process(delta):
 				var to_home = HOME_POS - aircraft.global_transform.origin
 				to_home.y = 0.0
 				var dist_to_home = to_home.length()
-				episode_reward += max(0.0, 1.0 - dist_to_home / 1000.0) * 500.0
+				episode_reward += max(0.0, 1.0 - dist_to_home / 1000.0) * 200.0
 			_on_episode_end()
 			reset_episode()
 	else:
@@ -757,6 +764,13 @@ func _physics_process(delta):
 
 		var next_state = get_state()
 		var reward = compute_reward()
+		if is_instance_valid(aircraft):
+			var to_home = HOME_POS - aircraft.global_transform.origin
+			to_home.y = 0.0
+			var cur_dist = to_home.length()
+			var delta = _prev_dist_to_home - cur_dist
+			reward += clamp(delta * 0.05, -0.5, 0.5)
+			_prev_dist_to_home = cur_dist
 		if csv_exporter and is_instance_valid(csv_exporter):
 			var q_values = agent.predict_q(PackedFloat32Array(state))
 			csv_exporter.set_dqn_data(action, state, q_values, reward, epsilon, episode_count, agent.get_step_count())
