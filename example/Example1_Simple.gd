@@ -549,7 +549,7 @@ const TARGET_SPD = 50.0
 const SPD_SIGMA = 15.0
 const ALT_SIGMA = 80.0
 const ALT_FLOOR = 50.0
-const CRASH_PENALTY = -10.0
+const CRASH_PENALTY = -500.0
 
 func get_fuel_soc() -> float:
 	if is_instance_valid(energy_container):
