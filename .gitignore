@@ -24,3 +24,4 @@ venv/
 rust_dqn/target/
 rust_dqn/**/*.d
 paper/paper.tex
+*.tex
