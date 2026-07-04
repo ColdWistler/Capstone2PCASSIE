@@ -72,6 +72,8 @@ var test_ep_alt_sum = 0.0
 var test_ep_stall_acc = 0
 
 var csv_exporter = null
+var _heading_error = 0.0
+var _dist_norm = 0.0
 
 var is_landing_mode = false
 
@@ -461,6 +463,8 @@ func get_state() -> Array:
 		to_home = to_home.normalized()
 		heading_error = fwd.dot(to_home)  # cos(angle), 1.0 = heading directly toward home
 	var dist_norm = min(dist_to_home / 1000.0, 1.0)
+	_heading_error = heading_error
+	_dist_norm = dist_norm
 	var state = [s, a, sin(pitch), cos(pitch), sin(roll), cos(roll), v, st,
 		obs[0], obs[1], obs[2], fuel_ratio, battery_ratio,
 		episode_progress, heading_error, dist_norm]
@@ -482,7 +486,7 @@ const TARGET_SPD = 50.0
 const SPD_SIGMA = 15.0
 const ALT_SIGMA = 80.0
 const ALT_FLOOR = 50.0
-const CRASH_PENALTY = -10.0
+const CRASH_PENALTY = -500.0
 
 
 func compute_reward() -> float:
@@ -533,6 +537,7 @@ func compute_reward() -> float:
 			var vel = aircraft.linear_velocity
 			var forward_spd = vel.dot(fwd)
 			rw += max(forward_spd * 0.003, 0.0)
+			rw += _heading_error * 0.3
 		else:
 			rw += 0.5 if gear_down else -0.5
 			rw += 0.3 if vs < -1.0 else 0.0
