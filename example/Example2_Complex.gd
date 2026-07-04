@@ -16,7 +16,7 @@ const LR_DECAY = 0.9995
 const LR_MIN = 0.0001
 const EPSILON_START = 1.0
 const EPSILON_MIN = 0.01
-const EPSILON_DECAY = 0.998
+const EPSILON_DECAY = 0.99
 const GRAD_CLIP = 1.0
 const SAVE_PATH = "user://dqn_complex_weights.save"
 const META_PATH = "user://dqn_complex_meta.save"
@@ -259,6 +259,7 @@ func _on_episode_end():
 			var empty_q = []
 			empty_q.resize(agent.get_action_dim())
 			csv_exporter.set_dqn_data(-1, [], empty_q, 0.0, epsilon, episode_count, agent.get_step_count())
+		epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
 
 
 func _generate_test_report():
@@ -679,7 +680,7 @@ func _physics_process(delta):
 
 	if is_done:
 		if has_landed_safely:
-			episode_reward += 15.0
+			episode_reward += 200.0
 		elif not test_mode:
 			episode_reward += CRASH_PENALTY
 		_on_episode_end()
@@ -738,8 +739,6 @@ func _physics_process(delta):
 
 		var next_state = get_state()
 		var reward = compute_reward()
-		if prev_action >= 0 and action != prev_action:
-			reward -= 0.02
 		if csv_exporter and is_instance_valid(csv_exporter):
 			var q_values = agent.predict_q(PackedFloat32Array(state))
 			csv_exporter.set_dqn_data(action, state, q_values, reward, epsilon, episode_count, agent.get_step_count())
@@ -755,7 +754,6 @@ func _physics_process(delta):
 				train_counter = 0
 				var current_lr = max(LR_MIN, LR_INIT * pow(LR_DECAY, agent.get_step_count()))
 				agent.train(BATCH_SIZE, GAMMA, GRAD_CLIP, current_lr)
-				epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
 
 		if done:
 			_on_episode_end()

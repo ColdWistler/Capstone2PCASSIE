@@ -1,6 +1,6 @@
 extends Node3D
 
-const STATE_DIM = 12
+const STATE_DIM = 13
 const ACTION_DIM = 7
 const HIDDEN1 = 512
 const HIDDEN2 = 256
@@ -19,7 +19,7 @@ const ADAM_EPS = 1e-8
 const TAU = 0.005
 const EPSILON_START = 1.0
 const EPSILON_MIN = 0.01
-const EPSILON_DECAY = 0.998
+const EPSILON_DECAY = 0.99
 const GRAD_CLIP = 1.0
 const PRIORITY_ALPHA = 0.6
 const PRIORITY_BETA_START = 0.4
@@ -31,6 +31,7 @@ const SAVE_INTERVAL = 50
 const SAVE_VERSION = 5
 const TEST_EPISODES = 10
 const TEST_REPORT_PATH = "user://test_report.txt"
+const ALT_CRASH_THRESHOLD = 15.0
 const TEST_REPORT_HTML_PATH = "user://test_report.html"
 
 var template_explosion = preload("res://example/scenes/Explosion/Explosion.tscn")
@@ -258,6 +259,7 @@ func _on_episode_end():
 			best_reward = episode_reward
 		print("Episode %d | reward: %.1f | steps: %d | eps: %.3f | best: %.1f" %
 			[episode_count, episode_reward, episode_step, epsilon, best_reward])
+		epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
 
 
 func _generate_test_report():
@@ -522,11 +524,13 @@ func get_state() -> Array:
 	var a = max(aircraft.local_altitude, 0.0) / 500.0
 	var v = aircraft.linear_velocity.y / 50.0
 	var st = 1.0 if aircraft.is_stalled else 0.0
-	var p = steering_module.axis_x if is_instance_valid(steering_module) else 0.0
-	var r = steering_module.axis_z if is_instance_valid(steering_module) else 0.0
+	# Actual aircraft attitude (not commanded control inputs)
+	var pitch = aircraft.rotation.x
+	var roll = aircraft.rotation.z
 	var obs = get_obstacle_distances()
 	var fuel = energy_container.current_level / energy_container.MaxCapacity if is_instance_valid(energy_container) else 1.0
-	var state = [s, a, sin(p), cos(p), sin(r), cos(r), v, st, obs[0], obs[1], obs[2], fuel]
+	var episode_progress = float(episode_step) / MAX_EPISODE_STEPS
+	var state = [s, a, sin(pitch), cos(pitch), sin(roll), cos(roll), v, st, obs[0], obs[1], obs[2], fuel, episode_progress]
 	for i in range(state.size()):
 		state[i] = clamp(state[i], -1.0, 1.0)
 	return state
@@ -541,8 +545,11 @@ func _zero_state() -> Array:
 
 
 const TARGET_ALT = 200.0
+const TARGET_SPD = 50.0
+const SPD_SIGMA = 15.0
 const ALT_SIGMA = 80.0
 const ALT_FLOOR = 50.0
+const CRASH_PENALTY = -10.0
 
 func get_fuel_soc() -> float:
 	if is_instance_valid(energy_container):
@@ -570,14 +577,21 @@ func compute_reward() -> float:
 		if spd < 3.0 and not is_done:
 			rw += 2.0
 	else:
-		rw += min(spd * 0.002, 0.3)
+		rw += 0.1
+		var spd_err = spd - TARGET_SPD
+		rw += exp(-(spd_err * spd_err) / (2.0 * SPD_SIGMA * SPD_SIGMA)) * 2.0
+
 		if fuel > 0.1 and engine_on:
 			var alt_dev = abs(alt - TARGET_ALT)
-			rw += exp(-(alt_dev * alt_dev) / (2.0 * ALT_SIGMA * ALT_SIGMA)) * 3.0
+			rw += exp(-(alt_dev * alt_dev) / (2.0 * ALT_SIGMA * ALT_SIGMA)) * 2.0
 			if alt_dev < ALT_SIGMA * 2:
 				rw -= abs(vs) * 0.05
 			if alt < ALT_FLOOR:
 				rw -= (ALT_FLOOR - alt) / ALT_FLOOR * 2.0
+			var fwd = -aircraft.global_transform.basis.z
+			var vel = aircraft.linear_velocity
+			var forward_spd = vel.dot(fwd)
+			rw += max(forward_spd * 0.003, 0.0)
 		else:
 			rw += 0.5 if gear_down else -0.5
 			rw += 0.3 if vs < -1.0 else 0.0
@@ -692,7 +706,9 @@ func _physics_process(_delta):
 
 	if is_done:
 		if has_landed_safely:
-			episode_reward += 15.0
+			episode_reward += 200.0
+		elif not test_mode:
+			episode_reward += CRASH_PENALTY
 		_on_episode_end()
 		reset_episode()
 		return
@@ -732,6 +748,10 @@ func _physics_process(_delta):
 			_on_episode_end()
 			reset_episode()
 	else:
+		if aircraft.local_altitude < ALT_CRASH_THRESHOLD and not is_done:
+			is_done = true
+			return
+
 		var state = get_state()
 
 		if test_mode:
@@ -749,8 +769,6 @@ func _physics_process(_delta):
 
 		var next_state = get_state()
 		var reward = compute_reward()
-		if prev_action >= 0 and action != prev_action:
-			reward -= 0.02
 		if csv_exporter and is_instance_valid(csv_exporter):
 			var q_values = agent.predict_q(PackedFloat32Array(state))
 			csv_exporter.set_dqn_data(action, state, q_values, reward, epsilon, episode_count, agent.get_step_count())
@@ -766,7 +784,6 @@ func _physics_process(_delta):
 				train_counter = 0
 				var current_lr = max(LR_MIN, LR_INIT * pow(LR_DECAY, agent.get_step_count()))
 				agent.train(BATCH_SIZE, GAMMA, GRAD_CLIP, current_lr)
-				epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
 
 		if done:
 			_on_episode_end()
