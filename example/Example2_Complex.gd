@@ -526,19 +526,21 @@ func compute_reward() -> float:
 		var spd_err = spd - TARGET_SPD
 		rw += exp(-(spd_err * spd_err) / (2.0 * SPD_SIGMA * SPD_SIGMA)) * 2.0
 
-		if fuel_ratio > 0.05 and engine_on:
-			var alt_dev = abs(alt - TARGET_ALT)
-			rw += exp(-(alt_dev * alt_dev) / (2.0 * ALT_SIGMA * ALT_SIGMA)) * 2.0
-			if alt_dev < ALT_SIGMA * 2:
-				rw -= abs(vs) * 0.05
-			if alt < ALT_FLOOR:
-				rw -= (ALT_FLOOR - alt) / ALT_FLOOR * 2.0
-			var fwd = -aircraft.global_transform.basis.z
-			var vel = aircraft.linear_velocity
-			var forward_spd = vel.dot(fwd)
-			rw += max(forward_spd * 0.003, 0.0)
-			rw += _heading_error * 0.3
-		else:
+		var alt_dev = abs(alt - TARGET_ALT)
+		rw += exp(-(alt_dev * alt_dev) / (2.0 * ALT_SIGMA * ALT_SIGMA)) * 2.0
+		if alt_dev < ALT_SIGMA * 2:
+			rw -= abs(vs) * 0.05
+		if alt < ALT_FLOOR:
+			rw -= (ALT_FLOOR - alt) / ALT_FLOOR * 2.0
+
+		var fwd = -aircraft.global_transform.basis.z
+		var vel = aircraft.linear_velocity
+		var forward_spd = vel.dot(fwd)
+		rw += max(forward_spd * 0.003, 0.0)
+		rw += _heading_error * 0.3
+		rw += max(0.0, 1.0 - _dist_norm) * 0.2
+
+		if fuel_ratio <= 0.05 or not engine_on:
 			rw += 0.5 if gear_down else -0.5
 			rw += 0.3 if vs < -1.0 else 0.0
 			if alt < 50.0 and spd < 20.0:
