@@ -537,8 +537,8 @@ func compute_reward() -> float:
 		var vel = aircraft.linear_velocity
 		var forward_spd = vel.dot(fwd)
 		rw += max(forward_spd * 0.003, 0.0)
-		rw += _heading_error * 0.3
-		rw += max(0.0, 1.0 - _dist_norm) * 0.2
+		rw += _heading_error * 0.5
+		rw += max(0.0, 1.0 - _dist_norm) * 0.5
 
 		if fuel_ratio <= 0.05 or not engine_on:
 			rw += 0.5 if gear_down else -0.5
@@ -690,6 +690,12 @@ func _physics_process(delta):
 			episode_reward += 200.0
 		elif not test_mode:
 			episode_reward += CRASH_PENALTY
+		if not test_mode and is_instance_valid(aircraft):
+			var to_home = HOME_POS - aircraft.global_transform.origin
+			to_home.y = 0.0
+			var dist_to_home = to_home.length()
+			var dist_bonus = max(0.0, 1.0 - dist_to_home / 1000.0) * 500.0
+			episode_reward += dist_bonus
 		_on_episode_end()
 		reset_episode()
 		return
@@ -722,6 +728,11 @@ func _physics_process(delta):
 		episode_reward += compute_reward()
 		var done = is_done or episode_step >= MAX_EPISODE_STEPS
 		if done:
+			if not test_mode and is_instance_valid(aircraft):
+				var to_home = HOME_POS - aircraft.global_transform.origin
+				to_home.y = 0.0
+				var dist_to_home = to_home.length()
+				episode_reward += max(0.0, 1.0 - dist_to_home / 1000.0) * 500.0
 			_on_episode_end()
 			reset_episode()
 	else:
