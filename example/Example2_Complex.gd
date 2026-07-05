@@ -544,7 +544,7 @@ func compute_reward() -> float:
 		var vel = aircraft.linear_velocity
 		var forward_spd = vel.dot(fwd)
 		rw += max(forward_spd * 0.003, 0.0)
-		rw += _heading_error * 0.8
+		rw += _heading_error * lerp(0.8, 0.1, epsilon)
 		rw += max(0.0, 1.0 - _dist_norm) * 0.8
 
 		if fuel_ratio <= 0.05 or not engine_on:
