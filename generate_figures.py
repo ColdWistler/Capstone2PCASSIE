@@ -420,9 +420,10 @@ def fig_altitude_boxplot(rows, fname="fig_altitude_boxplot.pdf"):
         patch.set_alpha(0.6)
 
     ax.set_xticklabels(groups.keys())
-    ax.set_ylabel("Altitude (m)")
-    ax.set_title("Altitude Distribution by Training Phase")
-    ax.axhline(200, color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
+    ax.set_ylabel("Altitude ASL (m)")
+    ax.set_title("Flight Altitude Distribution by Training Phase")
+    # Note: these are absolute altitudes (meters above sea level), not AGL.
+    # The ~200 m AGL target corresponds to ~700–800 m ASL in this terrain.
     fig.savefig(OUTPUT_DIR / fname)
     plt.close(fig)
     return True

@@ -23,6 +23,7 @@ const META_PATH = "user://dqn_complex_meta.save"
 const TRAIN_INTERVAL = 2
 const SAVE_INTERVAL = 50
 const SAVE_VERSION = 5
+const MAX_EPISODES = 70
 const TEST_EPISODES = 10
 const TEST_REPORT_PATH = "user://test_report_complex.txt"
 const ALT_CRASH_THRESHOLD = 15.0
@@ -132,7 +133,7 @@ func _ready():
 		csv_exporter.dqn_agent = agent
 		csv_exporter.DQNStateDim = STATE_DIM
 		csv_exporter.DQNActionDim = ACTION_DIM
-		csv_exporter.ExportIntervalFrames = 3
+		csv_exporter.ExportIntervalFrames = 1
 		csv_exporter.WeightSaveIntervalEpisodes = 10
 		add_child(csv_exporter)
 		print("CSV exporter initialized")
@@ -263,6 +264,8 @@ func _on_episode_end():
 			empty_q.resize(agent.get_action_dim())
 			csv_exporter.set_dqn_data(-1, [], empty_q, 0.0, epsilon, episode_count, agent.get_step_count())
 		epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
+		if episode_count >= MAX_EPISODES:
+			get_tree().quit()
 
 
 func _generate_test_report():
