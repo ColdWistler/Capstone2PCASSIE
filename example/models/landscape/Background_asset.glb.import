@@ -3,18 +3,18 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://ce7w1etowujmf"
-path="res://.godot/imported/terrain.glb-39df80af165f373ca988196e3f84bcb6.scn"
+uid="uid://coeihueaamqw3"
+path="res://.godot/imported/Background_asset.glb-46032790ecf993517000017a5941f5e6.scn"
 
 [deps]
 
-source_file="res://example/models/landscape/terrain.glb"
-dest_files=["res://.godot/imported/terrain.glb-39df80af165f373ca988196e3f84bcb6.scn"]
+source_file="res://example/models/landscape/Background_asset.glb"
+dest_files=["res://.godot/imported/Background_asset.glb-46032790ecf993517000017a5941f5e6.scn"]
 
 [params]
 
-nodes/root_type="Node3D"
-nodes/root_name="Scene Root"
+nodes/root_type=""
+nodes/root_name=""
 nodes/root_script=null
 mesh_library/use_node_names_as_mesh_names=false
 array_mesh/deduplicate_surfaces=true
@@ -26,12 +26,12 @@ nodes/use_node_type_suffixes=true
 meshes/ensure_tangents=true
 meshes/generate_lods=true
 meshes/create_shadow_meshes=true
-meshes/light_baking=0
-meshes/lightmap_texel_size=0.1
+meshes/light_baking=1
+meshes/lightmap_texel_size=0.2
 meshes/force_disable_compression=false
 skins/use_named_skins=true
 animation/import=true
-animation/fps=15
+animation/fps=30
 animation/trimming=false
 animation/remove_immutable_tracks=true
 animation/import_rest_as_RESET=false
@@ -40,6 +40,6 @@ materials/extract=0
 materials/extract_format=0
 materials/extract_path=""
 _subresources={}
-gltf/naming_version=0
+gltf/naming_version=2
 gltf/embedded_image_handling=1
-gltf/texture_map_mode=0
+gltf/texture_map_mode=1
