@@ -2,9 +2,9 @@ extends Node
 
 @export var AircraftNode: NodePath
 @export var DQNAgentNode: NodePath
-@export var ExportIntervalFrames: int = 3
+@export var ExportIntervalFrames: int = 1
 @export var WeightSaveIntervalEpisodes: int = 10
-@export var MaxCsvRows: int = 50000
+@export var MaxCsvRows: int = 200000
 @export var DQNStateDim: int = 12
 @export var DQNActionDim: int = 7
 

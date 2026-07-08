@@ -1,11 +1,12 @@
 extends Node3D
 
-const STATE_DIM = 13
+const STATE_DIM = 16
+const HOME_POS = Vector3(552.0, 0.0, 2509.0)
 const ACTION_DIM = 7
 const HIDDEN1 = 512
 const HIDDEN2 = 256
-const MAX_EPISODE_STEPS = 2000
-const FRAMES_PER_STEP = 4
+const MAX_EPISODE_STEPS = 1500
+const FRAMES_PER_STEP = 2
 const BATCH_SIZE = 64
 const REPLAY_CAPACITY = 100000
 const N_STEPS = 3
@@ -15,15 +16,17 @@ const LR_DECAY = 0.9995
 const LR_MIN = 0.0001
 const EPSILON_START = 1.0
 const EPSILON_MIN = 0.01
-const EPSILON_DECAY = 0.998
+const EPSILON_DECAY = 0.93
 const GRAD_CLIP = 1.0
 const SAVE_PATH = "user://dqn_complex_weights.save"
 const META_PATH = "user://dqn_complex_meta.save"
 const TRAIN_INTERVAL = 2
 const SAVE_INTERVAL = 50
 const SAVE_VERSION = 5
+const MAX_EPISODES = 70
 const TEST_EPISODES = 10
 const TEST_REPORT_PATH = "user://test_report_complex.txt"
+const ALT_CRASH_THRESHOLD = 15.0
 
 const TEMPERATURE_ALTITUDE_DROP_RATE: float = 0.0065
 const ALTITUDE_OF_ZERO_DENSITY: float = 100000.0
@@ -68,6 +71,11 @@ var test_mode = false
 var test_results = []
 var test_ep_alt_sum = 0.0
 var test_ep_stall_acc = 0
+
+var csv_exporter = null
+var _heading_error = 0.0
+var _dist_norm = 0.0
+var _prev_dist_to_home = 0.0
 
 var is_landing_mode = false
 
@@ -118,6 +126,17 @@ func _ready():
 			print("No saved weights found, starting fresh")
 	if test_mode:
 		takeoff_phase = false
+	var CsvExporterScript = load("res://addons/simplified_flightsim/TelemetryExporter/TelemetryCsvExporter.gd")
+	if CsvExporterScript:
+		csv_exporter = CsvExporterScript.new()
+		csv_exporter.aircraft_ref = aircraft
+		csv_exporter.dqn_agent = agent
+		csv_exporter.DQNStateDim = STATE_DIM
+		csv_exporter.DQNActionDim = ACTION_DIM
+		csv_exporter.ExportIntervalFrames = 1
+		csv_exporter.WeightSaveIntervalEpisodes = 10
+		add_child(csv_exporter)
+		print("CSV exporter initialized")
 	initialize_aircraft()
 	if takeoff_phase:
 		print("Starting takeoff from runway...")
@@ -198,12 +217,12 @@ func _find_best_run() -> String:
 			var full = "user://" + fn
 			var file = FileAccess.open(full, FileAccess.READ)
 			if file:
-		var ver = file.get_32()
-			if ver >= 5:
-				file.get_var()
-				file.get_var()
-				file.get_32()
-				file.get_32()
+				var ver = file.get_32()
+				if ver >= 5:
+					file.get_var()
+					file.get_var()
+					file.get_32()
+					file.get_32()
 					var r = file.get_var()
 					if r > best_r:
 						best_r = r
@@ -240,6 +259,13 @@ func _on_episode_end():
 			best_reward = episode_reward
 		print("Episode %d | reward: %.1f | steps: %d | eps: %.3f | best: %.1f" %
 			[episode_count, episode_reward, episode_step, epsilon, best_reward])
+		if csv_exporter and is_instance_valid(csv_exporter):
+			var empty_q = []
+			empty_q.resize(agent.get_action_dim())
+			csv_exporter.set_dqn_data(-1, [], empty_q, 0.0, epsilon, episode_count, agent.get_step_count())
+		epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
+		if episode_count >= MAX_EPISODES:
+			get_tree().quit()
 
 
 func _generate_test_report():
@@ -303,6 +329,12 @@ func initialize_aircraft():
 	episode_step = 0
 	episode_reward = 0.0
 	is_done = false
+	if is_instance_valid(aircraft):
+		var to_home = HOME_POS - aircraft.global_transform.origin
+		to_home.y = 0.0
+		_prev_dist_to_home = to_home.length()
+	else:
+		_prev_dist_to_home = 0.0
 
 	for eng in engine_modules:
 		if is_instance_valid(eng):
@@ -416,8 +448,9 @@ func get_state() -> Array:
 	var a = max(aircraft.local_altitude, 0.0) / 500.0
 	var v = aircraft.linear_velocity.y / 50.0
 	var st = 1.0 if aircraft.is_stalled else 0.0
-	var p = steering_module.axis_x if is_instance_valid(steering_module) else 0.0
-	var r = steering_module.axis_z if is_instance_valid(steering_module) else 0.0
+	# Actual aircraft attitude (not commanded control inputs)
+	var pitch = aircraft.rotation.x
+	var roll = aircraft.rotation.z
 	var obs = get_obstacle_distances()
 	var total_fuel = 0.0
 	var total_max = 0.0
@@ -429,7 +462,22 @@ func get_state() -> Array:
 	var battery_ratio = 0.0
 	if is_instance_valid(battery_container):
 		battery_ratio = battery_container.current_level / battery_container.MaxCapacity
-	var state = [s, a, sin(p), cos(p), sin(r), cos(r), v, st, obs[0], obs[1], obs[2], fuel_ratio, battery_ratio]
+	var episode_progress = float(episode_step) / MAX_EPISODE_STEPS
+	# Heading error: angle between aircraft forward and direction to home base
+	var fwd = -aircraft.global_transform.basis.z
+	var to_home = HOME_POS - aircraft.global_transform.origin
+	to_home.y = 0.0
+	var dist_to_home = to_home.length()
+	var heading_error = 0.0
+	if dist_to_home > 0.1:
+		to_home = to_home.normalized()
+		heading_error = fwd.dot(to_home)  # cos(angle), 1.0 = heading directly toward home
+	var dist_norm = min(dist_to_home / 1000.0, 1.0)
+	_heading_error = heading_error
+	_dist_norm = dist_norm
+	var state = [s, a, sin(pitch), cos(pitch), sin(roll), cos(roll), v, st,
+		obs[0], obs[1], obs[2], fuel_ratio, battery_ratio,
+		episode_progress, heading_error, dist_norm]
 	for i in range(state.size()):
 		state[i] = clamp(state[i], -1.0, 1.0)
 	return state
@@ -444,8 +492,11 @@ func _zero_state() -> Array:
 
 
 const TARGET_ALT = 200.0
+const TARGET_SPD = 50.0
+const SPD_SIGMA = 15.0
 const ALT_SIGMA = 80.0
 const ALT_FLOOR = 50.0
+const CRASH_PENALTY = -200.0
 
 
 func compute_reward() -> float:
@@ -481,15 +532,25 @@ func compute_reward() -> float:
 		if spd < 3.0 and not is_done:
 			rw += 2.0
 	else:
-		rw += min(spd * 0.002, 0.3)
-		if fuel_ratio > 0.05 and engine_on:
-			var alt_dev = abs(alt - TARGET_ALT)
-			rw += exp(-(alt_dev * alt_dev) / (2.0 * ALT_SIGMA * ALT_SIGMA)) * 3.0
-			if alt_dev < ALT_SIGMA * 2:
-				rw -= abs(vs) * 0.05
-			if alt < ALT_FLOOR:
-				rw -= (ALT_FLOOR - alt) / ALT_FLOOR * 2.0
-		else:
+		rw += 0.1
+		var spd_err = spd - TARGET_SPD
+		rw += exp(-(spd_err * spd_err) / (2.0 * SPD_SIGMA * SPD_SIGMA)) * 2.0
+
+		var alt_dev = abs(alt - TARGET_ALT)
+		rw += exp(-(alt_dev * alt_dev) / (2.0 * ALT_SIGMA * ALT_SIGMA)) * 2.0
+		if alt_dev < ALT_SIGMA * 2:
+			rw -= abs(vs) * 0.05
+		if alt < ALT_FLOOR:
+			rw -= (ALT_FLOOR - alt) / ALT_FLOOR * 2.0
+
+		var fwd = -aircraft.global_transform.basis.z
+		var vel = aircraft.linear_velocity
+		var forward_spd = vel.dot(fwd)
+		rw += max(forward_spd * 0.003, 0.0)
+		rw += _heading_error * lerp(0.8, 0.1, epsilon)
+		rw += max(0.0, 1.0 - _dist_norm) * 0.8
+
+		if fuel_ratio <= 0.05 or not engine_on:
 			rw += 0.5 if gear_down else -0.5
 			rw += 0.3 if vs < -1.0 else 0.0
 			if alt < 50.0 and spd < 20.0:
@@ -503,8 +564,8 @@ func compute_reward() -> float:
 		rw -= 1.0
 	if aircraft.local_g_force > 5.0:
 		rw -= 0.5
-	rw += fuel_ratio * 0.5
-	rw += battery_ratio * 0.3
+	rw += fuel_ratio * 0.05
+	rw += battery_ratio * 0.05
 	if is_reloading_fuel:
 		rw += 1.0
 	if is_charging_battery:
@@ -636,7 +697,15 @@ func _physics_process(delta):
 
 	if is_done:
 		if has_landed_safely:
-			episode_reward += 15.0
+			episode_reward += 200.0
+		elif not test_mode:
+			episode_reward += CRASH_PENALTY
+		if not test_mode and is_instance_valid(aircraft):
+			var to_home = HOME_POS - aircraft.global_transform.origin
+			to_home.y = 0.0
+			var dist_to_home = to_home.length()
+			var dist_bonus = max(0.0, 1.0 - dist_to_home / 1000.0) * 200.0
+			episode_reward += dist_bonus
 		_on_episode_end()
 		reset_episode()
 		return
@@ -669,9 +738,18 @@ func _physics_process(delta):
 		episode_reward += compute_reward()
 		var done = is_done or episode_step >= MAX_EPISODE_STEPS
 		if done:
+			if not test_mode and is_instance_valid(aircraft):
+				var to_home = HOME_POS - aircraft.global_transform.origin
+				to_home.y = 0.0
+				var dist_to_home = to_home.length()
+				episode_reward += max(0.0, 1.0 - dist_to_home / 1000.0) * 200.0
 			_on_episode_end()
 			reset_episode()
 	else:
+		if aircraft.local_altitude < ALT_CRASH_THRESHOLD and not is_done:
+			is_done = true
+			return
+
 		var state = get_state()
 
 		if test_mode:
@@ -689,8 +767,16 @@ func _physics_process(delta):
 
 		var next_state = get_state()
 		var reward = compute_reward()
-		if prev_action >= 0 and action != prev_action:
-			reward -= 0.02
+		if is_instance_valid(aircraft):
+			var to_home = HOME_POS - aircraft.global_transform.origin
+			to_home.y = 0.0
+			var cur_dist = to_home.length()
+			var d_dist = _prev_dist_to_home - cur_dist
+			reward += clamp(d_dist * 0.05, -0.5, 0.5)
+			_prev_dist_to_home = cur_dist
+		if csv_exporter and is_instance_valid(csv_exporter):
+			var q_values = agent.predict_q(PackedFloat32Array(state))
+			csv_exporter.set_dqn_data(action, state, q_values, reward, epsilon, episode_count, agent.get_step_count())
 		prev_action = action
 		episode_step += 1
 		episode_reward += reward
@@ -703,7 +789,6 @@ func _physics_process(delta):
 				train_counter = 0
 				var current_lr = max(LR_MIN, LR_INIT * pow(LR_DECAY, agent.get_step_count()))
 				agent.train(BATCH_SIZE, GAMMA, GRAD_CLIP, current_lr)
-				epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
 
 		if done:
 			_on_episode_end()
