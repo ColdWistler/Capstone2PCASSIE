@@ -2,6 +2,8 @@ mod sumtree;
 
 use godot::prelude::*;
 use rand::Rng;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 use sumtree::{ReplayItem, SumTree};
 
 const ADAM_BETA1: f32 = 0.9;
@@ -69,12 +71,13 @@ struct DQNRust {
     step_count: i64,   // total steps taken
     epsilon: f64,      // ε-greedy exploration rate (decays over time)
     gamma_pow: Vec<f32>,  // precomputed γⁿ for N-step discounting
+    seed: u64,         // random seed (0 = no seeding)
 }
 
 #[godot_api]
 impl DQNRust {
     #[func]
-    fn init(&mut self, state_dim: i32, action_dim: i32, hidden1: i32, hidden2: i32, replay_capacity: i32, n_steps: i32, gamma: f64) {
+    fn init(&mut self, state_dim: i32, action_dim: i32, hidden1: i32, hidden2: i32, replay_capacity: i32, n_steps: i32, gamma: f64, seed: i64) {
         let sd = state_dim as usize;
         let ad = action_dim as usize;
         let h1 = hidden1 as usize;
@@ -95,19 +98,27 @@ impl DQNRust {
         }
         self.gamma_pow = gp;
 
-        let mut rng = rand::thread_rng();
-
         let w1_len = h1 * sd;
-        self.w1 = (0..w1_len).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
-        self.b1 = vec![0.0f32; h1];
-
         let w2_len = h2 * h1;
-        self.w2 = (0..w2_len).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
-        self.b2 = vec![0.0f32; h2];
 
-        self.wA = (0..ad * h2).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
+        if seed != 0 {
+            self.seed = seed as u64;
+            let mut srng = StdRng::seed_from_u64(seed as u64);
+            self.w1 = (0..w1_len).map(|_| srng.gen::<f32>() * 0.2 - 0.1).collect();
+            self.w2 = (0..w2_len).map(|_| srng.gen::<f32>() * 0.2 - 0.1).collect();
+            self.wA = (0..ad * h2).map(|_| srng.gen::<f32>() * 0.2 - 0.1).collect();
+            self.wV = (0..h2).map(|_| srng.gen::<f32>() * 0.2 - 0.1).collect();
+        } else {
+            self.seed = 0;
+            let mut trng = rand::thread_rng();
+            self.w1 = (0..w1_len).map(|_| trng.gen::<f32>() * 0.2 - 0.1).collect();
+            self.w2 = (0..w2_len).map(|_| trng.gen::<f32>() * 0.2 - 0.1).collect();
+            self.wA = (0..ad * h2).map(|_| trng.gen::<f32>() * 0.2 - 0.1).collect();
+            self.wV = (0..h2).map(|_| trng.gen::<f32>() * 0.2 - 0.1).collect();
+        }
+        self.b1 = vec![0.0f32; h1];
+        self.b2 = vec![0.0f32; h2];
         self.bA = vec![0.0f32; ad];
-        self.wV = (0..h2).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
         self.bV = 0.0;
 
         let z_w1 = vec![0.0f32; w1_len];
@@ -464,6 +475,9 @@ impl DQNRust {
 
     #[func]
     fn set_epsilon(&mut self, eps: f64) { self.epsilon = eps; }
+
+    #[func]
+    fn get_seed(&self) -> i64 { self.seed as i64 }
 
     #[func]
     fn get_step_count(&self) -> i64 { self.step_count }
