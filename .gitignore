@@ -19,3 +19,9 @@ docs/*.import
 telemetry/
 reports/
 venv/
+
+# Rust build artifacts
+rust_dqn/target/
+rust_dqn/**/*.d
+paper/paper.tex
+*.tex

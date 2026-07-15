@@ -2,6 +2,7 @@ extends Node
 
 @export var AircraftNode: NodePath
 @export var ExportIntervalFrames: int = 3
+@export var SeedSuffix: String = ""
 
 var aircraft: Aircraft = null
 var engine_module = null
@@ -19,7 +20,7 @@ func _ready():
 	await get_tree().process_frame
 	aircraft = get_node_or_null(AircraftNode)
 	if not aircraft:
-		printerr("TelemetryExporter: Aircraft node not found")
+		print("TelemetryExporter: Aircraft node not configured — skipping")
 		return
 	engine_module = aircraft.find_modules_by_type("engine").pop_front()
 	steering_module = aircraft.find_modules_by_type("steering").pop_front()
@@ -30,7 +31,7 @@ func _ready():
 
 	var project_root = ProjectSettings.globalize_path("res://")
 	_output_dir = project_root + "telemetry"
-	_output_path = _output_dir + "/telemetry.jsonl"
+	_output_path = _output_dir + "/telemetry" + SeedSuffix + ".jsonl"
 
 	var dir = DirAccess.open(project_root)
 	if dir and not dir.dir_exists("telemetry"):
