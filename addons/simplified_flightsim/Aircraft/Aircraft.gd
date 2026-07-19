@@ -130,6 +130,10 @@ func _ready():
 	# setup() (that's why setup() exists, instead of just using _ready())
 	setup()
 
+func _exit_tree():
+	if is_instance_valid(internal_world_reference) and internal_world_reference.get_parent() == get_node("/root/"):
+		internal_world_reference.queue_free()
+
 func setup():
 	for module in modules:
 		module.setup(self)

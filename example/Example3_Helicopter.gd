@@ -9,13 +9,19 @@ var is_reloading_fuel = false
 
 var achievement_unlocked = false
 
+var _explosion_instance = null
+
 func _on_Aircraft_crashed(_impact_velocity):
-	var new_explosion = template_explosion.instantiate()
-	add_child(new_explosion)
-	new_explosion.global_transform.origin = $Aircraft.global_transform.origin
-	new_explosion.explode()
+	if _explosion_instance and is_instance_valid(_explosion_instance):
+		_explosion_instance.queue_free()
+	_explosion_instance = template_explosion.instantiate()
+	add_child(_explosion_instance)
+	_explosion_instance.global_transform.origin = $Aircraft.global_transform.origin
+	_explosion_instance.explode()
 	aircraft.queue_free()
 	await get_tree().create_timer(2.0).timeout
+	if _explosion_instance and is_instance_valid(_explosion_instance):
+		_explosion_instance.queue_free()
 	var __= get_tree().reload_current_scene()
 
 

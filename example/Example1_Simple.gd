@@ -810,5 +810,12 @@ func _physics_process(_delta):
 			reset_episode()
 
 
+func _exit_tree():
+	if is_instance_valid(agent):
+		agent.free()
+	if OS.is_debug_build():
+		print("ObjectDB object count on exit: %d" % ObjectDB.get_object_count())
+
+
 func _on_BtnBack_pressed():
 	get_tree().change_scene_to_file("res://example/ExampleList.tscn")
