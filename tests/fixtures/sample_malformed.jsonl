@@ -1,0 +1,7 @@
+{"t":1000,"alt":100.5,"spd":25.3,"vspd":2.1,"roll":5.2,"pitch":3.1,"hdg":180.0,"px":10.0,"py":100.5,"pz":5.0,"g":1.02,"load":1.02,"fuel":0.95,"epow":0.8,"flap":0.0,"gear":0,"stall":0,"eact":1}
+this is not valid json at all
+{"t":3000,"alt":104.7,"spd":25.1,"vspd":2.1,"roll":5.5,"pitch":2.9,"hdg":182.0,"px":30.0,"py":104.7,"pz":6.0,"g":1.03,"load":1.03,"fuel":0.93,"epow":0.75,"flap":0.0,"gear":0,"stall":0,"eact":1}
+{"broken json
+{"t":5000,"alt":108.9,"spd":25.4,"vspd":2.1,"roll":5.1,"pitch":3.1,"hdg":184.0,"px":50.0,"py":108.9,"pz":7.0,"g":1.02,"load":1.02,"fuel":0.91,"epow":0.78,"flap":0.0,"gear":0,"stall":0,"eact":1}
+
+{"t":7000,"alt":113.1,"spd":25.2,"vspd":2.1,"roll":5.8,"pitch":3.3,"hdg":186.0,"px":70.0,"py":113.1,"pz":8.0,"g":1.04,"load":1.04,"fuel":0.89,"epow":0.77,"flap":0.0,"gear":0,"stall":0,"eact":1}
