@@ -704,20 +704,6 @@ func _physics_process(delta):
 	if engine_modules.is_empty() or not is_instance_valid(steering_module):
 		return
 
-	if not ai_enabled:
-		return
-
-	var any_engine_running = false
-	for eng in engine_modules:
-		if is_instance_valid(eng) and eng.is_engine_working:
-			any_engine_running = true
-			break
-	if any_engine_running:
-		engine_was_running = true
-	elif engine_was_running:
-		if is_instance_valid(landing_gear_module) and not landing_gear_module.is_deployed and not landing_gear_module.is_deploying:
-			landing_gear_module.deploy()
-
 	if is_done:
 		if has_landed_safely:
 			episode_reward += 200.0
@@ -732,6 +718,20 @@ func _physics_process(delta):
 		_on_episode_end()
 		reset_episode()
 		return
+
+	if not ai_enabled:
+		return
+
+	var any_engine_running = false
+	for eng in engine_modules:
+		if is_instance_valid(eng) and eng.is_engine_working:
+			any_engine_running = true
+			break
+	if any_engine_running:
+		engine_was_running = true
+	elif engine_was_running:
+		if is_instance_valid(landing_gear_module) and not landing_gear_module.is_deployed and not landing_gear_module.is_deploying:
+			landing_gear_module.deploy()
 
 	if takeoff_phase:
 		if test_mode:
