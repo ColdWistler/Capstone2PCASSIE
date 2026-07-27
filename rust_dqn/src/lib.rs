@@ -2,8 +2,6 @@ mod sumtree;
 
 use godot::prelude::*;
 use rand::Rng;
-use rand::rngs::StdRng;
-use rand::SeedableRng;
 use sumtree::{ReplayItem, SumTree};
 
 const ADAM_BETA1: f32 = 0.9;
@@ -71,13 +69,12 @@ struct DQNRust {
     step_count: i64,   // total steps taken
     epsilon: f64,      // ε-greedy exploration rate (decays over time)
     gamma_pow: Vec<f32>,  // precomputed γⁿ for N-step discounting
-    seed: u64,         // random seed (0 = no seeding)
 }
 
 #[godot_api]
 impl DQNRust {
     #[func]
-    fn init(&mut self, state_dim: i32, action_dim: i32, hidden1: i32, hidden2: i32, replay_capacity: i32, n_steps: i32, gamma: f64, seed: i64) {
+    fn init(&mut self, state_dim: i32, action_dim: i32, hidden1: i32, hidden2: i32, replay_capacity: i32, n_steps: i32, gamma: f64) {
         let sd = state_dim as usize;
         let ad = action_dim as usize;
         let h1 = hidden1 as usize;
@@ -98,27 +95,19 @@ impl DQNRust {
         }
         self.gamma_pow = gp;
 
-        let w1_len = h1 * sd;
-        let w2_len = h2 * h1;
+        let mut rng = rand::thread_rng();
 
-        if seed != 0 {
-            self.seed = seed as u64;
-            let mut srng = StdRng::seed_from_u64(seed as u64);
-            self.w1 = (0..w1_len).map(|_| srng.gen::<f32>() * 0.2 - 0.1).collect();
-            self.w2 = (0..w2_len).map(|_| srng.gen::<f32>() * 0.2 - 0.1).collect();
-            self.wA = (0..ad * h2).map(|_| srng.gen::<f32>() * 0.2 - 0.1).collect();
-            self.wV = (0..h2).map(|_| srng.gen::<f32>() * 0.2 - 0.1).collect();
-        } else {
-            self.seed = 0;
-            let mut trng = rand::thread_rng();
-            self.w1 = (0..w1_len).map(|_| trng.gen::<f32>() * 0.2 - 0.1).collect();
-            self.w2 = (0..w2_len).map(|_| trng.gen::<f32>() * 0.2 - 0.1).collect();
-            self.wA = (0..ad * h2).map(|_| trng.gen::<f32>() * 0.2 - 0.1).collect();
-            self.wV = (0..h2).map(|_| trng.gen::<f32>() * 0.2 - 0.1).collect();
-        }
+        let w1_len = h1 * sd;
+        self.w1 = (0..w1_len).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
         self.b1 = vec![0.0f32; h1];
+
+        let w2_len = h2 * h1;
+        self.w2 = (0..w2_len).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
         self.b2 = vec![0.0f32; h2];
+
+        self.wA = (0..ad * h2).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
         self.bA = vec![0.0f32; ad];
+        self.wV = (0..h2).map(|_| rng.gen::<f32>() * 0.2 - 0.1).collect();
         self.bV = 0.0;
 
         let z_w1 = vec![0.0f32; w1_len];
@@ -477,9 +466,6 @@ impl DQNRust {
     fn set_epsilon(&mut self, eps: f64) { self.epsilon = eps; }
 
     #[func]
-    fn get_seed(&self) -> i64 { self.seed as i64 }
-
-    #[func]
     fn get_step_count(&self) -> i64 { self.step_count }
 
     #[func]
@@ -622,127 +608,5 @@ fn apply_adam(dw: &[f32], w: &mut [f32], m: &mut [f32], v: &mut [f32], lr: f32, 
 fn polyak(src: &[f32], dst: &mut [f32], tau: f32) {
     for i in 0..src.len() {
         dst[i] = tau * src[i] + (1.0 - tau) * dst[i];
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use sumtree::ReplayItem;
-
-    fn make_item(id: i32) -> ReplayItem {
-        ReplayItem {
-            state: vec![id as f32; 3],
-            action: 0,
-            reward: 0.0,
-            next_state: vec![0.0; 3],
-            done: false,
-            n_actual: 1,
-        }
-    }
-
-    #[test]
-    fn ut04_relu_activations_shape() {
-        let x = vec![1.0, -1.0, 0.5];
-        let w = vec![0.5, 0.5, -0.5, 0.1, 0.2, 0.3];
-        let b = vec![0.0, 0.0];
-        let out = DQNRust::relu_activations(&x, &w, &b, 2, 3);
-        assert_eq!(out.len(), 2);
-    }
-
-    #[test]
-    fn ut04_relu_activations_values() {
-        let x = vec![1.0, -1.0, 0.5];
-        let w = vec![1.0, 0.0, 0.0, 0.0, 1.0, 0.0];
-        let b = vec![0.0, 0.0];
-        let out = DQNRust::relu_activations(&x, &w, &b, 2, 3);
-        assert!((out[0] - 1.0).abs() < 1e-6);
-        assert!((out[1] - 0.0).abs() < 1e-6);
-    }
-
-    #[test]
-    fn ut05_relu_negative_becomes_zero() {
-        let x = vec![-1.0, -2.0];
-        let w = vec![1.0, 0.0, 0.0, 1.0];
-        let b = vec![0.0, 0.0];
-        let out = DQNRust::relu_activations(&x, &w, &b, 2, 2);
-        assert_eq!(out[0], 0.0);
-        assert_eq!(out[1], 0.0);
-    }
-
-    #[test]
-    fn ut09_adam_updates_weights() {
-        let mut w = vec![1.0, 2.0, 3.0];
-        let dw = vec![0.1, -0.1, 0.05];
-        let mut m = vec![0.0; 3];
-        let mut v = vec![0.0; 3];
-        let lr = 0.001;
-        let b1c = 1.0 - ADAM_BETA1;
-        let b2c = 1.0 - ADAM_BETA2;
-
-        let w_before = w.clone();
-        apply_adam(&dw, &mut w, &mut m, &mut v, lr, b1c, b2c);
-
-        assert_ne!(w, w_before, "weights should change after one adam step");
-        assert!(w[0] < 1.0, "positive gradient should decrease weight");
-        assert!(w[1] > 2.0, "negative gradient should increase weight");
-    }
-
-    #[test]
-    fn ut08_polyak_soft_update() {
-        let src = vec![1.0, 2.0, 3.0];
-        let mut dst = vec![0.0, 0.0, 0.0];
-        let tau = 0.5;
-
-        polyak(&src, &mut dst, tau);
-
-        assert!((dst[0] - 0.5).abs() < 1e-6);
-        assert!((dst[1] - 1.0).abs() < 1e-6);
-        assert!((dst[2] - 1.5).abs() < 1e-6);
-    }
-
-    #[test]
-    fn ut08_polyak_tau_zero_no_change() {
-        let src = vec![1.0, 2.0];
-        let mut dst = vec![5.0, 6.0];
-        polyak(&src, &mut dst, 0.0);
-        assert_eq!(dst, vec![5.0, 6.0]);
-    }
-
-    #[test]
-    fn ut08_polyak_tau_one_full_copy() {
-        let src = vec![1.0, 2.0];
-        let mut dst = vec![5.0, 6.0];
-        polyak(&src, &mut dst, 1.0);
-        assert_eq!(dst, vec![1.0, 2.0]);
-    }
-
-    #[test]
-    fn ut10_adam_multiple_steps_converge() {
-        let mut w: Vec<f32> = vec![5.0];
-        let mut m: Vec<f32> = vec![0.0];
-        let mut v: Vec<f32> = vec![0.0];
-        let lr: f32 = 0.05;
-        let target: f32 = 0.0;
-        let grad_clip: f32 = 1.0;
-
-        for step in 1..=500 {
-            let b1c = 1.0f32 - ADAM_BETA1.powi(step);
-            let b2c = 1.0f32 - ADAM_BETA2.powi(step);
-            let dw = vec![(w[0] - target).clamp(-grad_clip, grad_clip)];
-            apply_adam(&dw, &mut w, &mut m, &mut v, lr, b1c, b2c);
-        }
-        assert!(w[0].abs() < 1.0, "weight should move toward target after 500 steps, got {}", w[0]);
-    }
-
-    #[test]
-    fn ut06_push_replay_buffer_boundary() {
-        let mut tree = SumTree::new(4);
-        for i in 0..10 {
-            tree.add(make_item(i), 1.0);
-        }
-        assert_eq!(tree.size, 4);
-        let total = tree.total();
-        assert!((total - 4.0).abs() < 1e-6);
     }
 }

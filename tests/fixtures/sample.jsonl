@@ -1,0 +1,10 @@
+{"t":1000,"alt":100.5,"spd":25.3,"vspd":2.1,"roll":5.2,"pitch":3.1,"hdg":180.0,"px":10.0,"py":100.5,"pz":5.0,"g":1.02,"load":1.02,"fuel":0.95,"epow":0.8,"flap":0.0,"gear":0,"stall":0,"eact":1}
+{"t":2000,"alt":102.6,"spd":25.5,"vspd":2.1,"roll":4.8,"pitch":3.0,"hdg":181.0,"px":20.0,"py":102.6,"pz":5.5,"g":1.01,"load":1.01,"fuel":0.94,"epow":0.8,"flap":0.0,"gear":0,"stall":0,"eact":1}
+{"t":3000,"alt":104.7,"spd":25.1,"vspd":2.1,"roll":5.5,"pitch":2.9,"hdg":182.0,"px":30.0,"py":104.7,"pz":6.0,"g":1.03,"load":1.03,"fuel":0.93,"epow":0.75,"flap":0.0,"gear":0,"stall":0,"eact":1}
+{"t":4000,"alt":106.8,"spd":25.8,"vspd":2.1,"roll":6.0,"pitch":3.2,"hdg":183.0,"px":40.0,"py":106.8,"pz":6.5,"g":1.05,"load":1.05,"fuel":0.92,"epow":0.8,"flap":0.0,"gear":0,"stall":0,"eact":1}
+{"t":5000,"alt":108.9,"spd":25.4,"vspd":2.1,"roll":5.1,"pitch":3.1,"hdg":184.0,"px":50.0,"py":108.9,"pz":7.0,"g":1.02,"load":1.02,"fuel":0.91,"epow":0.78,"flap":0.0,"gear":0,"stall":0,"eact":1}
+{"t":6000,"alt":111.0,"spd":25.6,"vspd":2.1,"roll":4.5,"pitch":2.8,"hdg":185.0,"px":60.0,"py":111.0,"pz":7.5,"g":1.01,"load":1.01,"fuel":0.90,"epow":0.8,"flap":0.0,"gear":0,"stall":0,"eact":1}
+{"t":7000,"alt":113.1,"spd":25.2,"vspd":2.1,"roll":5.8,"pitch":3.3,"hdg":186.0,"px":70.0,"py":113.1,"pz":8.0,"g":1.04,"load":1.04,"fuel":0.89,"epow":0.77,"flap":0.0,"gear":0,"stall":0,"eact":1}
+{"t":8000,"alt":115.2,"spd":25.7,"vspd":2.1,"roll":4.9,"pitch":3.0,"hdg":187.0,"px":80.0,"py":115.2,"pz":8.5,"g":1.02,"load":1.02,"fuel":0.88,"epow":0.8,"flap":0.0,"gear":0,"stall":0,"eact":1}
+{"t":9000,"alt":117.3,"spd":25.3,"vspd":2.1,"roll":5.3,"pitch":3.1,"hdg":188.0,"px":90.0,"py":117.3,"pz":9.0,"g":1.03,"load":1.03,"fuel":0.87,"epow":0.79,"flap":0.0,"gear":0,"stall":0,"eact":1}
+{"t":10000,"alt":119.4,"spd":25.5,"vspd":2.1,"roll":5.0,"pitch":3.0,"hdg":189.0,"px":100.0,"py":119.4,"pz":9.5,"g":1.02,"load":1.02,"fuel":0.86,"epow":0.8,"flap":0.0,"gear":0,"stall":0,"eact":1}

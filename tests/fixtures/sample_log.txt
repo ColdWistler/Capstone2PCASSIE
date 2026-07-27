@@ -1,0 +1,16 @@
+Initialize godot-rust (API v4.6.stable.official, runtime v4.7.stable.arch_linux)
+engines found: [EngineL1, EngineL2, EngineR2, EngineR1]
+No saved weights found, starting fresh
+engine start
+Starting takeoff from runway...
+Episode 1 | reward: 47.7 | steps: 25 | eps: 1.000 | best: 47.7
+engine start
+Episode 2 | reward: 1984.6 | steps: 1088 | eps: 0.930 | best: 1984.6
+engine start
+Landing approach at step 1275
+Episode 3 | reward: 2939.4 | steps: 1500 | eps: 0.865 | best: 2939.4
+engine start
+Episode 4 | reward: 1466.4 | steps: 975 | eps: 0.804 | best: 2939.4
+engine start
+Crash detected
+Episode 5 | reward: 500.0 | steps: 300 | eps: 0.748 | best: 2939.4
