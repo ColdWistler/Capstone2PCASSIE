@@ -843,8 +843,6 @@ func _update_mode_label():
 func _exit_tree():
 	if is_instance_valid(agent):
 		agent.free()
-	if OS.is_debug_build():
-		print("ObjectDB object count on exit: %d" % ObjectDB.get_object_count())
 
 
 func _on_BtnBack_pressed():

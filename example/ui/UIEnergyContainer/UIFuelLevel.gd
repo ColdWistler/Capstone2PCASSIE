@@ -1,19 +1,21 @@
 extends Control
 
-@export var ActiveColor: Color = Color(0.9, 0.9, 0.5, 1.0)
-@export var Caption: String = "SPD" # Changed to match your screenshot
 
-# Target the child node directly. 
-# If your child node is named "AltSpeed", use $AltSpeed
-@onready var display_label = $AltSpeed 
+# EnergyContainer module sends the following dictionary:
+# values = {
+#     "energy_level": float,           # current energy level
+#     "energy_soc": float <0.0 - 1.0>, # state-of-charge: 0.0=empty, 1.0=full
+#     "energy_max": float,             # maximum capacity
+#     "energy_active": bool,           # if this energy container is connected
+# }
+
+@export var ActiveColor: Color = Color(0.9, 0.9, 0.5, 1.0)
+@export var Caption: String = "Fuel"
 
 func _ready():
-	# Set initial text
-	if display_label:
-		display_label.text = Caption
+	$Panel/Label.text = Caption
+	$Panel/Bar.tint_progress = ActiveColor
 
 func update_interface(values: Dictionary):
-	# Adjust this based on how you want to display the data
-	# Assuming 'values' contains speed info
-	if display_label and values.has("speed"):
-		display_label.text = str(values["speed"])
+	$Panel/Bar.value = values["energy_soc"]
+	$Panel/Bar.tint_progress = ActiveColor if values["energy_active"] else Color(0.5,0.5,0.5,1.0)
