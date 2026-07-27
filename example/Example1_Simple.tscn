@@ -707,6 +707,7 @@ Replay: 20k buffer, batch 32
 Epsilon: 1.0 -> 0.01 (decay 0.9995)
 Target net update: every 200 steps
 
+Tab: Toggle AI / Manual control
 Training runs automatically.
 Check console for episode logs."
 
@@ -728,5 +729,26 @@ offset_right = 163.0
 offset_bottom = 24.0
 focus_mode = 0
 text = "<- Back to example list"
+
+[node name="ModeLabel" type="Label" parent="Interface"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 30.0
+offset_right = 200.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.2, 0.9, 0.3, 1)
+text = "AI PILOT"
+uppercase = true
+
+[node name="ModeHint" type="Label" parent="Interface"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 54.0
+offset_right = 200.0
+offset_bottom = 72.0
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "Tab to toggle manual control"
 
 [connection signal="pressed" from="Interface/BtnBack" to="." method="_on_BtnBack_pressed"]

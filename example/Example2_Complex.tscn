@@ -960,6 +960,8 @@ theme_override_font_sizes/normal_font_size = 12
 bbcode_enabled = true
 text = "CONTROLS
 
+Tab - Toggle AI / Manual control
+
 P - Start engine
 O - Cut engine off
 1 - All engines min power
@@ -994,6 +996,27 @@ Park on charger box to recharge battery"
 layout_mode = 0
 focus_mode = 0
 text = "<- Back to example list"
+
+[node name="ModeLabel" type="Label" parent="Interface"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 30.0
+offset_right = 200.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.2, 0.9, 0.3, 1)
+text = "AI PILOT"
+uppercase = true
+
+[node name="ModeHint" type="Label" parent="Interface"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 54.0
+offset_right = 200.0
+offset_bottom = 72.0
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "Tab to toggle manual control"
 
 [connection signal="crashed" from="Aircraft" to="." method="_on_Aircraft_crashed"]
 [connection signal="moved" from="Aircraft" to="." method="_on_Aircraft_moved"]

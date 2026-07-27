@@ -78,6 +78,8 @@ var test_ep_stall_acc = 0
 
 var is_landing_mode = false
 
+var ai_enabled = true
+
 # CSV data logger (optional — logs telemetry + DQN data to telemetry/csv/)
 var csv_exporter = null
 
@@ -144,6 +146,7 @@ func _ready():
 		add_child(csv_exporter)
 		print("CSV exporter initialized")
 	initialize_aircraft()
+	_update_mode_label()
 	if takeoff_phase:
 		print("Starting takeoff from runway...")
 	else:
@@ -718,6 +721,9 @@ func _physics_process(_delta):
 	if not is_instance_valid(engine_module) or not is_instance_valid(steering_module):
 		return
 
+	if not ai_enabled:
+		return
+
 	if engine_module.is_engine_working:
 		engine_was_running = true
 	elif engine_was_running:
@@ -808,6 +814,28 @@ func _physics_process(_delta):
 		if done:
 			_on_episode_end()
 			reset_episode()
+
+
+func _input(event):
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_TAB:
+			ai_enabled = not ai_enabled
+			if ai_enabled:
+				print("AI PILOT ENABLED")
+			else:
+				print("MANUAL CONTROL — AI DISABLED")
+			_update_mode_label()
+
+
+func _update_mode_label():
+	var label = get_node_or_null("Interface/ModeLabel")
+	if label:
+		if ai_enabled:
+			label.text = "AI PILOT"
+			label.add_theme_color_override("font_color", Color(0.2, 0.9, 0.3))
+		else:
+			label.text = "MANUAL"
+			label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.1))
 
 
 func _exit_tree():
