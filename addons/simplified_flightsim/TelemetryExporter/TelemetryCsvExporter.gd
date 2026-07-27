@@ -7,6 +7,7 @@ extends Node
 @export var MaxCsvRows: int = 200000
 @export var DQNStateDim: int = 12
 @export var DQNActionDim: int = 7
+@export var SeedSuffix: String = ""
 
 var aircraft: Aircraft = null
 var dqn_agent = null
@@ -62,7 +63,7 @@ func _ready():
 			dir.make_dir("telemetry/weights")
 
 	var timestamp = Time.get_datetime_string_from_system().replace(":", "-")
-	_csv_path = _output_dir + "/telemetry_" + timestamp + ".csv"
+	_csv_path = _output_dir + "/telemetry_" + timestamp + SeedSuffix + ".csv"
 	_csv_file = FileAccess.open(_csv_path, FileAccess.WRITE)
 	if _csv_file:
 		print("TelemetryCsvExporter: writing to " + _csv_path)
@@ -235,7 +236,7 @@ func _rotate_file():
 	if _csv_file:
 		_csv_file.close()
 	var timestamp = Time.get_datetime_string_from_system().replace(":", "-")
-	_csv_path = _output_dir + "/telemetry_" + timestamp + ".csv"
+	_csv_path = _output_dir + "/telemetry_" + timestamp + SeedSuffix + ".csv"
 	_csv_file = FileAccess.open(_csv_path, FileAccess.WRITE)
 	_row_count = 0
 	_header_written = false

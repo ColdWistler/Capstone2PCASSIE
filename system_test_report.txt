@@ -1,0 +1,28 @@
+=== SYSTEM TEST REPORT ===
+Passed: 24/24
+Failed: 0
+
+[PASS] ST-PARSE-123: Log log_seed_123.txt has episodes — found 236 episodes
+[PASS] ST-COUNT-123: Log log_seed_123.txt episode count >= 100 — 236 episodes
+[PASS] ST-REWARD-123: Log log_seed_123.txt final 30 mean reward > 0 — mean=4449.9
+[PASS] ST-STEPS-123: Log log_seed_123.txt avg steps > 100 — avg_steps=1480
+[PASS] ST-EPS-123: Log log_seed_123.txt epsilon decays toward 0 — final_eps=0.0100
+[PASS] ST-BEST-123: Log log_seed_123.txt best reward in final 30 > mean — best=4830.7
+[PASS] ST-PARSE-42: Log log_seed_42.txt has episodes — found 290 episodes
+[PASS] ST-COUNT-42: Log log_seed_42.txt episode count >= 100 — 290 episodes
+[PASS] ST-REWARD-42: Log log_seed_42.txt final 30 mean reward > 0 — mean=3219.4
+[PASS] ST-STEPS-42: Log log_seed_42.txt avg steps > 100 — avg_steps=1063
+[PASS] ST-EPS-42: Log log_seed_42.txt epsilon decays toward 0 — final_eps=0.0100
+[PASS] ST-BEST-42: Log log_seed_42.txt best reward in final 30 > mean — best=4797.3
+[PASS] ST-PARSE-456: Log log_seed_456.txt has episodes — found 290 episodes
+[PASS] ST-COUNT-456: Log log_seed_456.txt episode count >= 100 — 290 episodes
+[PASS] ST-REWARD-456: Log log_seed_456.txt final 30 mean reward > 0 — mean=2326.1
+[PASS] ST-STEPS-456: Log log_seed_456.txt avg steps > 100 — avg_steps=795
+[PASS] ST-EPS-456: Log log_seed_456.txt epsilon decays toward 0 — final_eps=0.0100
+[PASS] ST-BEST-456: Log log_seed_456.txt best reward in final 30 > mean — best=3919.9
+[PASS] ST-PARSE-789: Log log_seed_789.txt has episodes — found 250 episodes
+[PASS] ST-COUNT-789: Log log_seed_789.txt episode count >= 100 — 250 episodes
+[PASS] ST-REWARD-789: Log log_seed_789.txt final 30 mean reward > 0 — mean=3574.4
+[PASS] ST-STEPS-789: Log log_seed_789.txt avg steps > 100 — avg_steps=1296
+[PASS] ST-EPS-789: Log log_seed_789.txt epsilon decays toward 0 — final_eps=0.0100
+[PASS] ST-BEST-789: Log log_seed_789.txt best reward in final 30 > mean — best=4790.9

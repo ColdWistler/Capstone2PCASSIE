@@ -55,6 +55,10 @@ func _ready():
 	UsesEnergy = true
 	EnergyType = "fuel"
 
+func _exit_tree():
+	if sfx_tween:
+		sfx_tween.kill()
+
 func setup(aircraft_node):
 	aircraft = aircraft_node
 	request_update_interface()

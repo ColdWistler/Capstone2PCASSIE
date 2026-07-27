@@ -2,6 +2,7 @@ extends Node
 
 @export var AircraftNode: NodePath
 @export var ExportIntervalFrames: int = 3
+@export var SeedSuffix: String = ""
 
 var aircraft: Aircraft = null
 var engine_module = null
@@ -30,7 +31,7 @@ func _ready():
 
 	var project_root = ProjectSettings.globalize_path("res://")
 	_output_dir = project_root + "telemetry"
-	_output_path = _output_dir + "/telemetry.jsonl"
+	_output_path = _output_dir + "/telemetry" + SeedSuffix + ".jsonl"
 
 	var dir = DirAccess.open(project_root)
 	if dir and not dir.dir_exists("telemetry"):

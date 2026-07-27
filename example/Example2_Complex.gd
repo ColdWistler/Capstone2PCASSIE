@@ -18,12 +18,12 @@ const EPSILON_START = 1.0
 const EPSILON_MIN = 0.01
 const EPSILON_DECAY = 0.93
 const GRAD_CLIP = 1.0
-const SAVE_PATH = "user://dqn_complex_weights.save"
+const SAVE_PATH_BASE = "user://dqn_complex_weights"
 const META_PATH = "user://dqn_complex_meta.save"
 const TRAIN_INTERVAL = 2
-const SAVE_INTERVAL = 50
+const SAVE_INTERVAL = 100
 const SAVE_VERSION = 5
-const MAX_EPISODES = 70
+const MAX_EPISODES = 500
 const TEST_EPISODES = 10
 const TEST_REPORT_PATH = "user://test_report_complex.txt"
 const ALT_CRASH_THRESHOLD = 15.0
@@ -65,6 +65,7 @@ var prev_action = -1
 var train_counter = 0
 
 var run_id = 0
+var seed = 0
 var _last_saved_best = -1e9
 
 var test_mode = false
@@ -103,14 +104,17 @@ func _ready():
 		Engine.time_scale = 5.0
 		print("Headless mode — FPS uncapped, time scale 5x")
 
+	var cli_seed = 0
 	for arg in OS.get_cmdline_args():
 		if arg == "--test" or arg == "-t":
 			test_mode = true
 			print("TEST MODE — %d episodes, greedy actions, no training" % TEST_EPISODES)
-			break
+		if arg.begins_with("--seed="):
+			cli_seed = int(arg.trim_prefix("--seed="))
 
+	seed = cli_seed
 	agent = DQNRust.new()
-	agent.init(STATE_DIM, ACTION_DIM, HIDDEN1, HIDDEN2, REPLAY_CAPACITY, N_STEPS, GAMMA)
+	agent.init(STATE_DIM, ACTION_DIM, HIDDEN1, HIDDEN2, REPLAY_CAPACITY, N_STEPS, GAMMA, seed)
 	_init_run_id()
 	var best_path = _find_best_run()
 	var loaded = false
@@ -133,6 +137,7 @@ func _ready():
 		csv_exporter.dqn_agent = agent
 		csv_exporter.DQNStateDim = STATE_DIM
 		csv_exporter.DQNActionDim = ACTION_DIM
+		csv_exporter.SeedSuffix = "_seed_%d" % seed if seed != 0 else ""
 		csv_exporter.ExportIntervalFrames = 1
 		csv_exporter.WeightSaveIntervalEpisodes = 10
 		add_child(csv_exporter)
@@ -144,10 +149,20 @@ func _ready():
 		print("Spawning at altitude...")
 
 
+func _save_path() -> String:
+	if seed != 0:
+		return SAVE_PATH_BASE + "_seed_%d.save" % seed
+	return SAVE_PATH_BASE + ".save"
+
+func _best_run_path() -> String:
+	if seed != 0:
+		return "user://dqn_complex_seed_%d_run_%d.save" % [seed, run_id]
+	return "user://dqn_complex_run_%d.save" % run_id
+
 func save_weights():
-	_write_weights_to(SAVE_PATH)
+	_write_weights_to(_save_path())
 	if best_reward > _last_saved_best:
-		_write_weights_to("user://dqn_complex_run_%d.save" % run_id)
+		_write_weights_to(_best_run_path())
 		_last_saved_best = best_reward
 	print("Weights saved (episode %d)" % episode_count)
 
@@ -167,7 +182,9 @@ func _write_weights_to(path: String):
 	file.close()
 
 
-func load_weights(path := SAVE_PATH) -> bool:
+func load_weights(path := "") -> bool:
+	if path == "":
+		path = _save_path()
 	if not FileAccess.file_exists(path):
 		return false
 	var file = FileAccess.open(path, FileAccess.READ)
@@ -213,7 +230,7 @@ func _find_best_run() -> String:
 	dir.list_dir_begin()
 	var fn = dir.get_next()
 	while fn != "":
-		if fn.begins_with("dqn_complex_run_") and fn.ends_with(".save"):
+		if fn.ends_with(".save") and (fn.begins_with("dqn_complex_run_") or fn.begins_with("dqn_complex_seed_")):
 			var full = "user://" + fn
 			var file = FileAccess.open(full, FileAccess.READ)
 			if file:
@@ -793,6 +810,13 @@ func _physics_process(delta):
 		if done:
 			_on_episode_end()
 			reset_episode()
+
+
+func _exit_tree():
+	if is_instance_valid(agent):
+		agent.free()
+	if OS.is_debug_build():
+		print("ObjectDB object count on exit: %d" % ObjectDB.get_object_count())
 
 
 func _on_BtnBack_pressed():

@@ -49,6 +49,11 @@ func _ready():
 	
 	ModuleType = "landing_gear"
 
+func _exit_tree():
+	move_timer.stop()
+	if is_instance_valid(sfx_player):
+		sfx_player.stop()
+
 func setup(aircraft_node):
 	aircraft = aircraft_node
 	if landing_gear_collision_shape:

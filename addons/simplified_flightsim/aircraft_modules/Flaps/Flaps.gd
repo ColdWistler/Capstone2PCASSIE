@@ -40,6 +40,10 @@ func _ready():
 	if ui_node:
 		connect("update_interface", Callable(ui_node, "update_interface"))
 
+func _exit_tree():
+	if is_instance_valid(sfx_player):
+		sfx_player.stop()
+
 func setup(aircraft_node):
 	aircraft = aircraft_node
 	request_update_interface()

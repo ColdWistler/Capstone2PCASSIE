@@ -1,0 +1,1630 @@
+Initialize godot-rust (API v4.6.stable.official, runtime v4.7.stable.arch_linux, safeguards balanced)
+Godot Engine v4.7.stable.arch_linux.5b4e0cb0f (2026-06-17 18:46:02 UTC) - https://godotengine.org
+
+engines found: [EngineL1:<Node3D#45432702638>, EngineL2:<Node3D#45449479855>, EngineR2:<Node3D#45466257072>, EngineR1:<Node3D#45483034289>]
+engines found: [EngineL1:<Node3D#45432702638>]
+engines found: [EngineL2:<Node3D#45449479855>]
+engines found: [EngineR2:<Node3D#45466257072>]
+engines found: [EngineR1:<Node3D#45483034289>]
+energy containers found: [EnergyContainerFuel1:<Node#45365593770>]
+energy containers found: [EnergyContainerFuel2:<Node#45382370987>]
+energy containers found: [EnergyContainerFuel3:<Node#45399148204>]
+steering found: Steering:<Node#45499811506>
+landing_gear found: [LandingGear:<Node3D#45533365940>]
+flaps found: Flaps:<Node#45516588723>
+No saved weights found, starting fresh
+CSV exporter initialized
+engine start
+engine start
+engine start
+engine start
+Starting takeoff from runway...
+TelemetryCsvExporter: writing to /home/soggy/Documents/GitHub/Capstone2PCASSIE/telemetry/csv/telemetry_2026-07-08T08-07-03.csv
+Takeoff complete — DQN taking over
+Episode 1 | reward: 0.0 | steps: 0 | eps: 1.000 | best: -1000000000.0
+Landing approach at step 1275
+Episode 1 | reward: 2853.5 | steps: 1500 | eps: 1.000 | best: 2853.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 2 | reward: 2906.3 | steps: 1500 | eps: 0.930 | best: 2906.3
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 3 | reward: 2280.3 | steps: 1500 | eps: 0.865 | best: 2906.3
+engine start
+engine start
+engine start
+engine start
+Episode 4 | reward: 1774.7 | steps: 710 | eps: 0.804 | best: 2906.3
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 5 | reward: 2158.1 | steps: 1500 | eps: 0.748 | best: 2906.3
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 6 | reward: 3612.0 | steps: 1500 | eps: 0.696 | best: 3612.0
+engine start
+engine start
+engine start
+engine start
+Episode 7 | reward: 2347.8 | steps: 1201 | eps: 0.647 | best: 3612.0
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 8 | reward: 3637.2 | steps: 1500 | eps: 0.602 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 9 | reward: 2481.1 | steps: 1500 | eps: 0.560 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 9)
+Episode 10 | reward: 756.7 | steps: 331 | eps: 0.520 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 11 | reward: 3148.0 | steps: 1480 | eps: 0.484 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Episode 12 | reward: 2213.3 | steps: 941 | eps: 0.450 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 13 | reward: 2764.6 | steps: 1500 | eps: 0.419 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Episode 14 | reward: 954.8 | steps: 468 | eps: 0.389 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Episode 15 | reward: 1594.3 | steps: 895 | eps: 0.362 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 16 | reward: 3476.5 | steps: 1500 | eps: 0.337 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Episode 17 | reward: 2529.8 | steps: 960 | eps: 0.313 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Episode 18 | reward: 2912.3 | steps: 1107 | eps: 0.291 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 19 | reward: 3222.1 | steps: 1500 | eps: 0.271 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 19)
+Landing approach at step 1275
+Episode 20 | reward: 3185.6 | steps: 1500 | eps: 0.252 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 21 | reward: 2993.9 | steps: 1500 | eps: 0.234 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Episode 22 | reward: 1093.4 | steps: 585 | eps: 0.218 | best: 3637.2
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 23 | reward: 3748.8 | steps: 1500 | eps: 0.203 | best: 3748.8
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 24 | reward: 3346.9 | steps: 1500 | eps: 0.188 | best: 3748.8
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 25 | reward: 3913.7 | steps: 1500 | eps: 0.175 | best: 3913.7
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 26 | reward: 4033.7 | steps: 1500 | eps: 0.163 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 27 | reward: 2800.6 | steps: 1500 | eps: 0.152 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Episode 28 | reward: 793.4 | steps: 376 | eps: 0.141 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 29 | reward: 3226.8 | steps: 1500 | eps: 0.131 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 29)
+Episode 30 | reward: 862.4 | steps: 431 | eps: 0.122 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 31 | reward: 2787.8 | steps: 1500 | eps: 0.113 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 32 | reward: 3025.4 | steps: 1500 | eps: 0.105 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 33 | reward: 3967.3 | steps: 1500 | eps: 0.098 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 34 | reward: 3971.1 | steps: 1500 | eps: 0.091 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 35 | reward: 3424.5 | steps: 1500 | eps: 0.085 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 36 | reward: 3739.4 | steps: 1500 | eps: 0.079 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 37 | reward: 3405.5 | steps: 1500 | eps: 0.073 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 38 | reward: 3487.5 | steps: 1500 | eps: 0.068 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Episode 39 | reward: 2293.8 | steps: 851 | eps: 0.063 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 39)
+Landing approach at step 1275
+Episode 40 | reward: 3834.8 | steps: 1500 | eps: 0.059 | best: 4033.7
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 41 | reward: 4066.1 | steps: 1497 | eps: 0.055 | best: 4066.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 42 | reward: 4101.1 | steps: 1500 | eps: 0.051 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 43 | reward: 2633.7 | steps: 1500 | eps: 0.047 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 44 | reward: 3802.7 | steps: 1500 | eps: 0.044 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 45 | reward: 3265.7 | steps: 1500 | eps: 0.041 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Episode 46 | reward: 2823.8 | steps: 1138 | eps: 0.038 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Episode 47 | reward: 2074.2 | steps: 894 | eps: 0.035 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Episode 48 | reward: 2045.7 | steps: 856 | eps: 0.033 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 49 | reward: 3507.9 | steps: 1500 | eps: 0.031 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 49)
+Episode 50 | reward: 2148.9 | steps: 785 | eps: 0.029 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 51 | reward: 3576.0 | steps: 1500 | eps: 0.027 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 52 | reward: 3521.8 | steps: 1500 | eps: 0.025 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 53 | reward: 3507.6 | steps: 1500 | eps: 0.023 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 54 | reward: 3598.8 | steps: 1500 | eps: 0.021 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 55 | reward: 3451.6 | steps: 1500 | eps: 0.020 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Episode 56 | reward: 2021.9 | steps: 815 | eps: 0.018 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Episode 57 | reward: 2069.9 | steps: 821 | eps: 0.017 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 58 | reward: 3772.2 | steps: 1500 | eps: 0.016 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Episode 59 | reward: 2644.0 | steps: 1009 | eps: 0.015 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 59)
+Episode 60 | reward: 2173.3 | steps: 741 | eps: 0.014 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 61 | reward: 3872.9 | steps: 1500 | eps: 0.013 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Episode 62 | reward: 1422.9 | steps: 526 | eps: 0.012 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Episode 63 | reward: 2410.5 | steps: 911 | eps: 0.011 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 64 | reward: 3966.2 | steps: 1500 | eps: 0.010 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 65 | reward: 3022.7 | steps: 1500 | eps: 0.010 | best: 4101.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 66 | reward: 4349.5 | steps: 1500 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 67 | reward: 2990.4 | steps: 1500 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 68 | reward: 3019.6 | steps: 1330 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 69 | reward: 2502.5 | steps: 901 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 69)
+Landing approach at step 1275
+Episode 70 | reward: 3365.2 | steps: 1500 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 71 | reward: 3091.7 | steps: 1500 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 72 | reward: 1721.2 | steps: 639 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 73 | reward: 2097.8 | steps: 903 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 74 | reward: 3176.1 | steps: 1404 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 75 | reward: 4147.4 | steps: 1500 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 76 | reward: 3477.3 | steps: 1500 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 77 | reward: 3419.7 | steps: 1181 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 78 | reward: 3590.7 | steps: 1500 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 79 | reward: 4106.2 | steps: 1500 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 79)
+Episode 80 | reward: 2002.6 | steps: 806 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 81 | reward: 3285.0 | steps: 1500 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 82 | reward: 2080.6 | steps: 845 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 83 | reward: 3684.6 | steps: 1500 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 84 | reward: 3458.3 | steps: 1246 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 85 | reward: 2782.7 | steps: 1169 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 86 | reward: 2318.1 | steps: 889 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 87 | reward: 939.7 | steps: 381 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 88 | reward: 2015.8 | steps: 833 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 89 | reward: 2136.8 | steps: 855 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 89)
+Episode 90 | reward: 2985.5 | steps: 1075 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 91 | reward: 3024.1 | steps: 1062 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 92 | reward: 2191.1 | steps: 859 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 93 | reward: 2153.6 | steps: 735 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 94 | reward: 2445.2 | steps: 1012 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 95 | reward: 4269.5 | steps: 1500 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 96 | reward: 2352.6 | steps: 869 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 97 | reward: 1803.8 | steps: 650 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 98 | reward: 1799.1 | steps: 664 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 99 | reward: 3181.2 | steps: 1194 | eps: 0.010 | best: 4349.5
+Weights saved (episode 100)
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 99)
+Episode 100 | reward: 2375.9 | steps: 910 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 101 | reward: 1868.6 | steps: 999 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 102 | reward: 3626.5 | steps: 1500 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 103 | reward: 3325.4 | steps: 1319 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 104 | reward: 2157.0 | steps: 1088 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Episode 105 | reward: 1732.7 | steps: 677 | eps: 0.010 | best: 4349.5
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 106 | reward: 4520.0 | steps: 1500 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 107 | reward: 4104.8 | steps: 1500 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 108 | reward: 2389.6 | steps: 844 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 109 | reward: 2470.8 | steps: 1008 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 109)
+Landing approach at step 1275
+Episode 110 | reward: 3329.3 | steps: 1500 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 111 | reward: 3980.5 | steps: 1500 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 112 | reward: 3591.5 | steps: 1500 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 113 | reward: 2031.5 | steps: 807 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 114 | reward: 1769.0 | steps: 734 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 115 | reward: 2933.4 | steps: 1288 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 116 | reward: 3514.0 | steps: 1350 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 117 | reward: 1919.8 | steps: 682 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 118 | reward: 4245.7 | steps: 1500 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 119 | reward: 2669.1 | steps: 1011 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 119)
+Episode 120 | reward: 2493.8 | steps: 843 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 121 | reward: 1787.9 | steps: 634 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 122 | reward: 1558.5 | steps: 605 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 123 | reward: 1621.4 | steps: 614 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 124 | reward: 4061.0 | steps: 1500 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 125 | reward: 2525.1 | steps: 894 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 126 | reward: 2480.5 | steps: 875 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 127 | reward: 2428.8 | steps: 827 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 128 | reward: 2264.7 | steps: 763 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Episode 129 | reward: 2689.2 | steps: 962 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 129)
+Landing approach at step 1275
+Episode 130 | reward: 4067.7 | steps: 1386 | eps: 0.010 | best: 4520.0
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 131 | reward: 4561.6 | steps: 1500 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 132 | reward: 4131.6 | steps: 1500 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Episode 133 | reward: 2564.2 | steps: 810 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 134 | reward: 4048.9 | steps: 1500 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Episode 135 | reward: 2359.3 | steps: 764 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 136 | reward: 4374.8 | steps: 1500 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Episode 137 | reward: 2291.5 | steps: 739 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Episode 138 | reward: 2333.8 | steps: 811 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Episode 139 | reward: 2347.9 | steps: 750 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 139)
+Episode 140 | reward: 3258.4 | steps: 1252 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Episode 141 | reward: 3092.3 | steps: 1085 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Episode 142 | reward: 2516.9 | steps: 1049 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 143 | reward: 4006.1 | steps: 1500 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Episode 144 | reward: 2312.5 | steps: 739 | eps: 0.010 | best: 4561.6
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 145 | reward: 4676.1 | steps: 1500 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 146 | reward: 2420.1 | steps: 893 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 147 | reward: 2403.8 | steps: 837 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 148 | reward: 2863.2 | steps: 1130 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 149 | reward: 2188.6 | steps: 757 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 149)
+Landing approach at step 1275
+Episode 150 | reward: 3833.5 | steps: 1349 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 151 | reward: 2082.0 | steps: 704 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 152 | reward: 3872.2 | steps: 1500 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 153 | reward: 3386.1 | steps: 1342 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 154 | reward: 2458.4 | steps: 1139 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 155 | reward: 4475.7 | steps: 1500 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 156 | reward: 4105.3 | steps: 1500 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 157 | reward: 2900.2 | steps: 1028 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 158 | reward: 4034.9 | steps: 1500 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 159 | reward: 3253.8 | steps: 1343 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 159)
+Episode 160 | reward: 2139.7 | steps: 712 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 161 | reward: 4043.6 | steps: 1500 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 162 | reward: 2273.4 | steps: 747 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 163 | reward: 2371.3 | steps: 769 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 164 | reward: 3937.5 | steps: 1500 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 165 | reward: 2222.5 | steps: 733 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 166 | reward: 2388.8 | steps: 789 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 167 | reward: 4096.6 | steps: 1500 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 168 | reward: 3273.2 | steps: 1240 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 169 | reward: 2400.4 | steps: 820 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 169)
+Episode 170 | reward: 2170.6 | steps: 758 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 171 | reward: 2371.8 | steps: 801 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 172 | reward: 3439.2 | steps: 1239 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 173 | reward: 1810.2 | steps: 747 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 174 | reward: 4115.7 | steps: 1500 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 175 | reward: 2079.6 | steps: 725 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 176 | reward: 4427.0 | steps: 1500 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 177 | reward: 4092.5 | steps: 1500 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 178 | reward: 4034.7 | steps: 1500 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 179 | reward: 1936.7 | steps: 775 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 179)
+Episode 180 | reward: 2089.6 | steps: 727 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 181 | reward: 2593.8 | steps: 874 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Episode 182 | reward: 2520.6 | steps: 884 | eps: 0.010 | best: 4676.1
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 183 | reward: 4833.9 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 184 | reward: 2389.5 | steps: 851 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 185 | reward: 2312.0 | steps: 786 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 186 | reward: 2819.5 | steps: 982 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 187 | reward: 4288.8 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 188 | reward: 3354.0 | steps: 1233 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 189 | reward: 1889.8 | steps: 703 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 189)
+TelemetryCsvExporter: rotated to /home/soggy/Documents/GitHub/Capstone2PCASSIE/telemetry/csv/telemetry_2026-07-08T13-57-27.csv
+Landing approach at step 1275
+Episode 190 | reward: 4366.2 | steps: 1388 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 191 | reward: 4128.8 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 192 | reward: 4308.4 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 193 | reward: 3370.8 | steps: 1327 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 194 | reward: 1874.7 | steps: 794 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 195 | reward: 1657.9 | steps: 675 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 196 | reward: 3368.8 | steps: 1321 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 197 | reward: 4729.7 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 198 | reward: 4296.5 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 199 | reward: 4219.5 | steps: 1500 | eps: 0.010 | best: 4833.9
+Weights saved (episode 200)
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 199)
+Landing approach at step 1275
+Episode 200 | reward: 4129.2 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 201 | reward: 3861.0 | steps: 1465 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 202 | reward: 3803.3 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 203 | reward: 4128.9 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 204 | reward: 2431.4 | steps: 770 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 205 | reward: 4360.4 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 206 | reward: 4132.7 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 207 | reward: 4366.2 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 208 | reward: 4026.7 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 209 | reward: 2890.8 | steps: 995 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 209)
+Landing approach at step 1275
+Episode 210 | reward: 4332.1 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 211 | reward: 1982.3 | steps: 755 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 212 | reward: 2024.9 | steps: 736 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 213 | reward: 2462.0 | steps: 788 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 214 | reward: 2358.5 | steps: 1013 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 215 | reward: 2276.6 | steps: 770 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 216 | reward: 4285.9 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 217 | reward: 4022.6 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 218 | reward: 4621.0 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 219 | reward: 3239.5 | steps: 1229 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 219)
+Landing approach at step 1275
+Episode 220 | reward: 4448.1 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 221 | reward: 4166.6 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 222 | reward: 2201.2 | steps: 732 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 223 | reward: 1880.6 | steps: 643 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 224 | reward: 4052.5 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 225 | reward: 4114.2 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 226 | reward: 2675.6 | steps: 894 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 227 | reward: 4005.1 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 228 | reward: 2023.4 | steps: 697 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 229 | reward: 4195.9 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 229)
+Landing approach at step 1275
+Episode 230 | reward: 4235.1 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 231 | reward: 2446.3 | steps: 773 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 232 | reward: 4178.8 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 233 | reward: 4127.9 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 234 | reward: 4109.0 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 235 | reward: 4385.3 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 236 | reward: 4300.1 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 237 | reward: 4362.3 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 238 | reward: 3358.5 | steps: 1362 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 239 | reward: 2494.6 | steps: 789 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 239)
+Landing approach at step 1275
+Episode 240 | reward: 4537.0 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 241 | reward: 1906.4 | steps: 668 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 242 | reward: 2040.9 | steps: 709 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 243 | reward: 2014.5 | steps: 651 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 244 | reward: 2004.0 | steps: 678 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 245 | reward: 2198.8 | steps: 702 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 246 | reward: 2448.4 | steps: 778 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 247 | reward: 2134.1 | steps: 733 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 248 | reward: 2341.8 | steps: 801 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 249 | reward: 3475.8 | steps: 1358 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 249)
+Episode 250 | reward: 2388.4 | steps: 755 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 251 | reward: 2832.0 | steps: 1032 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 252 | reward: 1917.7 | steps: 680 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 253 | reward: 3424.8 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 254 | reward: 2311.4 | steps: 737 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 255 | reward: 2329.0 | steps: 894 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 256 | reward: 2275.8 | steps: 760 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 257 | reward: 2778.5 | steps: 1053 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 258 | reward: 2312.2 | steps: 753 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 259 | reward: 2050.2 | steps: 840 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 259)
+Landing approach at step 1275
+Episode 260 | reward: 3759.3 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 261 | reward: 1638.1 | steps: 708 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 262 | reward: 2273.5 | steps: 726 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 263 | reward: 2963.3 | steps: 1003 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 264 | reward: 3061.4 | steps: 1035 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 265 | reward: 1880.5 | steps: 652 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 266 | reward: 2592.7 | steps: 868 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 267 | reward: 1858.3 | steps: 653 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 268 | reward: 2139.2 | steps: 695 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 269 | reward: 2230.0 | steps: 728 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 269)
+Episode 270 | reward: 2080.1 | steps: 710 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 271 | reward: 2280.2 | steps: 744 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 272 | reward: 2267.8 | steps: 760 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 273 | reward: 2494.0 | steps: 820 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 274 | reward: 2035.9 | steps: 683 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 275 | reward: 2373.5 | steps: 793 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 276 | reward: 2358.8 | steps: 758 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 277 | reward: 2023.9 | steps: 666 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 278 | reward: 2134.2 | steps: 858 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 279 | reward: 2448.4 | steps: 808 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 279)
+Episode 280 | reward: 1912.2 | steps: 634 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 281 | reward: 1991.7 | steps: 658 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 282 | reward: 2359.3 | steps: 755 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 283 | reward: 1981.7 | steps: 649 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 284 | reward: 2038.9 | steps: 665 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 285 | reward: 2062.0 | steps: 678 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 286 | reward: 2446.1 | steps: 813 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Landing approach at step 1275
+Episode 287 | reward: 3919.9 | steps: 1500 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 288 | reward: 1937.5 | steps: 632 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Episode 289 | reward: 2239.4 | steps: 709 | eps: 0.010 | best: 4833.9
+engine start
+engine start
+engine start
+engine start
+Weight snapshot saved (episode 289)
