@@ -115,7 +115,7 @@ func _ready():
 
 	seed = cli_seed
 	agent = DQNRust.new()
-	agent.init(STATE_DIM, ACTION_DIM, HIDDEN1, HIDDEN2, REPLAY_CAPACITY, N_STEPS, GAMMA, seed)
+	agent.init(STATE_DIM, ACTION_DIM, HIDDEN1, HIDDEN2, REPLAY_CAPACITY, N_STEPS, GAMMA)
 
 	_init_run_id()
 	var best_path = _find_best_run()

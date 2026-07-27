@@ -116,7 +116,7 @@ func _ready():
 
 	seed = cli_seed
 	agent = DQNRust.new()
-	agent.init(STATE_DIM, ACTION_DIM, HIDDEN1, HIDDEN2, REPLAY_CAPACITY, N_STEPS, GAMMA, seed)
+	agent.init(STATE_DIM, ACTION_DIM, HIDDEN1, HIDDEN2, REPLAY_CAPACITY, N_STEPS, GAMMA)
 	_init_run_id()
 	var best_path = _find_best_run()
 	var loaded = false
@@ -373,7 +373,7 @@ func initialize_aircraft():
 		var spawn_basis = Basis(Vector3(0.707107, 0, 0.707107), Vector3(0, 1, 0), Vector3(-0.707107, 0, 0.707107))
 		if takeoff_phase:
 			aircraft.linear_velocity = Vector3.ZERO
-			aircraft.global_transform = Transform3D(spawn_basis, Vector3(552.0, 770.0, 2509.0))
+			aircraft.global_transform = Transform3D(spawn_basis, Vector3(552.0, 780.0, 2509.0))
 			throttle_level = 1.0
 			for eng in engine_modules:
 				if is_instance_valid(eng):
